@@ -1,0 +1,16 @@
+{
+  "name": "com.frarees.easyeditor",
+  "version": "0.1.0",
+  "displayName": "Easy Editor",
+  "description": "Support external editors with ease.",
+  "unity": "2019.2",
+  "keywords": [
+    "editor"
+  ],
+  "author": {
+    "name": "Francisco Requena",
+    "email": "frarees@gmail.com",
+    "url": "https://frarees.github.io"
+  }
+}
+
