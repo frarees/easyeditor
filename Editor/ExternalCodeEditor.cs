@@ -1,11 +1,11 @@
-﻿using System.IO;
-using Unity.CodeEditor;
-using UnityEngine;
-using UnityEditor;
-using System.Linq;
-
-namespace EasyEditor
+﻿namespace EasyEditor
 {
+    using System.IO;
+    using Unity.CodeEditor;
+    using UnityEngine;
+    using UnityEditor;
+    using System.Linq;
+
     internal class ExternalCodeEditor : IExternalCodeEditor
     {
         public CodeEditor.Installation[] Installations { get; }
@@ -35,7 +35,7 @@ namespace EasyEditor
 
         public void Initialize(string editorInstallationPath)
         {
-            if (SyncUtil.AutoSync)
+            if (Preferences.IsActive && Preferences.AutoSync)
             {
                 SyncUtil.Sync();
             }
@@ -48,12 +48,24 @@ namespace EasyEditor
                 EditorGUILayout.HelpBox("Couldn't retrieve synchronization members. Please contact this package's author.", MessageType.Warning);
             }
 
-            EditorGUI.BeginDisabledGroup(!SyncUtil.SyncVS.IsValid || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
+            EditorGUI.BeginDisabledGroup(!Preferences.IsActive || !SyncUtil.SyncVS.IsValid || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
             EditorGUI.BeginChangeCheck();
-            bool v = EditorGUILayout.Toggle("Sync solution and project files", SyncUtil.AutoSync);
+            bool v = EditorGUILayout.Toggle("Sync solution and project files", Preferences.AutoSync);
             if (EditorGUI.EndChangeCheck())
             {
-                SyncUtil.AutoSync = v;
+                Preferences.AutoSync = v;
+                if (v)
+                {
+                    SyncUtil.Sync();
+                }
+                Event.current.Use();
+            }
+
+            EditorGUI.BeginChangeCheck();
+            v = EditorGUILayout.Toggle("Match compiler version", Preferences.MatchCompilerVersion);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Preferences.MatchCompilerVersion = v;
                 if (v)
                 {
                     SyncUtil.Sync();

@@ -1,11 +1,11 @@
-﻿using UnityEditor;
-using System.Reflection;
-using System.Linq;
-using Unity.CodeEditor;
-using System.Collections.Generic;
-
-namespace EasyEditor
+﻿namespace EasyEditor
 {
+    using UnityEditor;
+    using System.Reflection;
+    using System.Linq;
+    using Unity.CodeEditor;
+    using System.Collections.Generic;
+
     [InitializeOnLoad]
     internal static class LauncherRegistry
     {
@@ -32,18 +32,8 @@ namespace EasyEditor
         {
             launchers.Clear();
             List<CodeEditor.Installation> installations = new List<CodeEditor.Installation>();
-            foreach (System.Type type in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && t.Namespace == "EasyEditor.Launchers"))
+            foreach (System.Type type in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && typeof(ILauncher).IsAssignableFrom(t)))
             {
-                if (type == null)
-                {
-                    continue;
-                }
-
-                if (type.IsAssignableFrom(typeof(ILauncher)))
-                {
-                    continue;
-                }
-
                 LauncherAttribute attribute = type.GetCustomAttribute<LauncherAttribute>();
                 if (attribute == null)
                 {

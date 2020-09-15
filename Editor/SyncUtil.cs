@@ -1,11 +1,11 @@
-using UnityEngine;
-using UnityEditor;
-using System;
-using System.Reflection;
-using UnityEngine.Profiling;
-
 namespace EasyEditor
 {
+    using UnityEngine;
+    using UnityEditor;
+    using System;
+    using System.Reflection;
+    using UnityEngine.Profiling;
+
     [InitializeOnLoad]
     internal static class SyncUtil
     {
@@ -55,7 +55,7 @@ namespace EasyEditor
                 IsValid = GetMembers();
                 if (!IsValid)
                 {
-                    AutoSync = false;
+                    Preferences.AutoSync = false;
                 }
             }
 
@@ -70,14 +70,7 @@ namespace EasyEditor
             }
         }
 
-        private const string kAutoSync = "kAutoSync";
-
         public static bool IsReloading { get; private set; }
-        public static bool AutoSync
-        {
-            get => EditorPrefs.GetBool(kAutoSync);
-            set => EditorPrefs.SetBool(kAutoSync, value);
-        }
 
         static SyncUtil()
         {
@@ -94,7 +87,7 @@ namespace EasyEditor
         {
             IsReloading = false;
 
-            if (AutoSync)
+            if (Preferences.AutoSync)
             {
                 Sync();
             }

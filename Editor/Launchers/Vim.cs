@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
-using System.Linq;
-using Unity.CodeEditor;
-
-namespace EasyEditor.Launchers
+﻿namespace EasyEditor.Launchers
 {
+    using System.Diagnostics;
+    using System.Linq;
+    using Unity.CodeEditor;
+
     [Launcher("MacVim")]
     internal class Vim : ILauncher
     {

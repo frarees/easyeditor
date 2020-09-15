@@ -1,6 +1,6 @@
 ﻿namespace EasyEditor
 {
-    public readonly struct LaunchDescriptor
+    internal readonly struct LaunchDescriptor
     {
         public string FilePath { get; }
         public int Line { get; }
