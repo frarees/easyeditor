@@ -1,13 +1,19 @@
 ﻿namespace EasyEditor
 {
     using System.IO;
+    using System.Linq;
     using Unity.CodeEditor;
     using UnityEngine;
     using UnityEditor;
-    using System.Linq;
 
+    [InitializeOnLoad]
     internal class ExternalCodeEditor : IExternalCodeEditor
     {
+        static ExternalCodeEditor()
+        {
+            CodeEditor.Register(new ExternalCodeEditor());
+        }
+
         public CodeEditor.Installation[] Installations { get; }
 
         private static string[] DefaultExtensions
@@ -43,14 +49,17 @@
 
         public void OnGUI()
         {
-            if (!SyncUtil.SyncVS.IsValid)
+            if (!string.IsNullOrEmpty(LauncherRegistry.LoadErrors))
             {
-                EditorGUILayout.HelpBox("Couldn't retrieve synchronization members. Please contact this package's author.", MessageType.Warning);
+                EditorGUILayout.HelpBox(LauncherRegistry.LoadErrors, MessageType.Warning);
             }
 
             EditorGUI.BeginDisabledGroup(!Preferences.IsActive || !SyncUtil.SyncVS.IsValid || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
             EditorGUI.BeginChangeCheck();
-            bool v = EditorGUILayout.Toggle("Sync solution and project files", Preferences.AutoSync);
+            GUIContent syncContent = new GUIContent(
+                "Sync solution and project files",
+                "Forces .sln and .csproj files to be generated and kept in sync.");
+            bool v = EditorGUILayout.Toggle(syncContent, Preferences.AutoSync);
             if (EditorGUI.EndChangeCheck())
             {
                 Preferences.AutoSync = v;
@@ -60,9 +69,16 @@
                 }
                 Event.current.Use();
             }
+            if (!SyncUtil.SyncVS.IsValid)
+            {
+                EditorGUILayout.HelpBox("Couldn't retrieve synchronization members. Please contact this package's author.", MessageType.Warning);
+            }
 
             EditorGUI.BeginChangeCheck();
-            v = EditorGUILayout.Toggle("Match compiler version", Preferences.MatchCompilerVersion);
+            GUIContent matchCompilerContent = new GUIContent(
+                "Match compiler version",
+                "When Unity creates or updates .csproj files, it defines LangVersion as 'latest'. This can create inconsistencies with other .NET platforms (e.g. OmniSharp), which could resolve 'latest' as a different version. By matching compiler version, 'latest' will get resolved as " + Preferences.GetLangVersion() + ". ");
+            v = EditorGUILayout.Toggle(matchCompilerContent, Preferences.MatchCompilerVersion);
             if (EditorGUI.EndChangeCheck())
             {
                 Preferences.MatchCompilerVersion = v;
@@ -72,6 +88,14 @@
                 }
                 Event.current.Use();
             }
+
+            string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
+            ILauncher launcher = LauncherRegistry.GetLauncher(editorPath);
+            if (launcher != null)
+            {
+                launcher.OnGUI();
+            }
+
             EditorGUI.EndDisabledGroup();
         }
 
@@ -93,7 +117,6 @@
             }
 
             string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-            CodeEditor.Installation installation = Installations.FirstOrDefault(i => i.Path == editorPath);
 
             LaunchDescriptor descriptor = new LaunchDescriptor(filePath, line, column, Preferences.ProjectPath, Preferences.ProjectName);
 
@@ -124,18 +147,23 @@
             ILauncher launcher = LauncherRegistry.GetLauncher(editorPath);
             if (launcher != null)
             {
-                launcher.SyncAll();
+                launcher.SyncIfNeeded(addedFiles, deletedFiles, movedFiles, movedFromFiles, importedFiles);
             }
         }
 
         public bool TryGetInstallationForPath(string editorPath, out CodeEditor.Installation installation)
         {
-            installation = new CodeEditor.Installation
+            foreach (CodeEditor.Installation i in Installations)
             {
-                Name = Path.GetFileNameWithoutExtension(editorPath),
-                Path = editorPath
-            };
-            return Installations.Any(i => i.Path == editorPath);
+                if (i.Path == editorPath)
+                {
+                    installation = i;
+                    return true;
+                }
+            }
+
+            installation = default;
+            return false;
         }
     }
 }

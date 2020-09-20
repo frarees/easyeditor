@@ -28,18 +28,9 @@
                 XmlNamespaceManager ns = new XmlNamespaceManager(document.NameTable);
                 ns.AddNamespace("msbld", "http://schemas.microsoft.com/developer/msbuild/2003");
                 XmlNode node = document.SelectSingleNode("//msbld:LangVersion", ns);
-                node.LastChild.InnerText = GetLangVersion();
+                node.LastChild.InnerText = Preferences.GetLangVersion();
                 document.Save(path);
             }
-        }
-
-        private static string GetLangVersion()
-        {
-#if UNITY_2020_2_OR_NEWER
-            return "8.0";
-#else
-            return "7.3";
-#endif
         }
     }
 }

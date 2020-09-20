@@ -3,13 +3,21 @@
     using System.Diagnostics;
     using System.Linq;
     using Unity.CodeEditor;
+    using UnityEngine;
+    using UnityEditor;
 
-    [Launcher("MacVim")]
     internal class Vim : ILauncher
     {
-        public string[] InstallationPaths => new string[]
+        private static readonly string PrefPrefix = $"{typeof(Vim).FullName}";
+        private static readonly string PrefRestartOmniSharp = $"{PrefPrefix}.RestartOmniSharp";
+
+        public CodeEditor.Installation[] Installations => new CodeEditor.Installation[]
         {
-            "/usr/local/bin/mvim",
+            new CodeEditor.Installation()
+            {
+                Name = "MacVim",
+                Path = "/usr/local/bin/mvim",
+            },
         };
 
         public bool Launch(string editorPath, LaunchDescriptor descriptor)
@@ -54,12 +62,18 @@
 
         public void SyncAll()
         {
-            ReloadOmniSharpServer();
+            if (Preferences.IsActive && EditorPrefs.GetBool(PrefRestartOmniSharp))
+            {
+                ReloadOmniSharpServer();
+            }
         }
 
         public void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles)
         {
-            ReloadOmniSharpServer();
+            if (Preferences.IsActive && EditorPrefs.GetBool(PrefRestartOmniSharp))
+            {
+                ReloadOmniSharpServer();
+            }
         }
 
         public bool MatchesExecutable(string editorPath)
@@ -84,6 +98,20 @@
 
             string output = process.StandardOutput.ReadToEnd();
             return output.StartsWith("VIM - Vi IMproved");
+        }
+
+        public void OnGUI()
+        {
+            EditorGUI.BeginChangeCheck();
+            GUIContent matchCompilerContent = new GUIContent(
+                "Restart OmniSharp server on sync",
+                "Upon synchronization, send a command (--remote-send) to the Vim server to trigger a OmniSharp server reload. omnisharp-vim required.");
+            bool b = EditorGUILayout.Toggle(matchCompilerContent, EditorPrefs.GetBool(PrefRestartOmniSharp));
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorPrefs.SetBool(PrefRestartOmniSharp, b);
+                Event.current.Use();
+            }
         }
     }
 }

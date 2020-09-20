@@ -10,6 +10,7 @@
     internal static class LauncherRegistry
     {
         public static CodeEditor.Installation[] Installations { get; set; }
+        public static string LoadErrors { get; private set; }
         private static readonly Dictionary<string, ILauncher> launchers = new Dictionary<string, ILauncher>();
 
         static LauncherRegistry()
@@ -23,41 +24,30 @@
             return launcher;
         }
 
-        public static ILauncher[] GetLaunchers()
-        {
-            return launchers.Values.ToArray();
-        }
-
         public static void Load()
         {
             launchers.Clear();
+            LoadErrors = string.Empty;
             List<CodeEditor.Installation> installations = new List<CodeEditor.Installation>();
             foreach (System.Type type in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && typeof(ILauncher).IsAssignableFrom(t)))
             {
-                LauncherAttribute attribute = type.GetCustomAttribute<LauncherAttribute>();
-                if (attribute == null)
-                {
-                    continue;
-                }
-
-                if (attribute.InstallationNames == null)
-                {
-                    continue;
-                }
-
                 ILauncher instance = (ILauncher)System.Activator.CreateInstance(type);
-                foreach (string name in attribute.InstallationNames)
+
+                if (instance.Installations == null)
                 {
-                    foreach (string editorPath in instance.InstallationPaths)
+                    continue;
+                }
+
+                foreach (CodeEditor.Installation installation in instance.Installations)
+                {
+                    if (!instance.MatchesExecutable(installation.Path))
                     {
-                        CodeEditor.Installation installation = new CodeEditor.Installation
-                        {
-                            Name = name,
-                            Path = editorPath
-                        };
-                        installations.Add(installation);
-                        launchers.Add(editorPath, instance);
+                        LoadErrors += $"{installation.Name}: failed to verify executable {installation.Path}.\n";
+                        continue;
                     }
+
+                    installations.Add(installation);
+                    launchers.Add(installation.Path, instance);
                 }
             }
 
