@@ -1,5 +1,5 @@
 {
-    "name": "Unity.EasyEditor.Editor",
+    "name": "EasyEditor.Reflected",
     "references": [],
     "includePlatforms": [
         "Editor"

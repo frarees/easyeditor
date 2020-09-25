@@ -5,6 +5,7 @@
     using Unity.CodeEditor;
     using UnityEngine;
     using UnityEditor;
+    using EasyEditor.Reflected;
 
     [InitializeOnLoad]
     internal class ExternalCodeEditor : IExternalCodeEditor
@@ -54,7 +55,7 @@
                 EditorGUILayout.HelpBox(LauncherRegistry.LoadErrors, MessageType.Warning);
             }
 
-            EditorGUI.BeginDisabledGroup(!Preferences.IsActive || !SyncUtil.SyncVS.IsValid || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
+            EditorGUI.BeginDisabledGroup(!Preferences.IsActive || !SyncVS.IsValid || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
             EditorGUI.BeginChangeCheck();
             GUIContent syncContent = new GUIContent(
                 "Sync solution and project files",
@@ -69,7 +70,7 @@
                 }
                 Event.current.Use();
             }
-            if (!SyncUtil.SyncVS.IsValid)
+            if (!SyncVS.IsValid)
             {
                 EditorGUILayout.HelpBox("Couldn't retrieve synchronization members. Please contact this package's author.", MessageType.Warning);
             }

@@ -1,5 +1,6 @@
 ﻿namespace EasyEditor
 {
+    using UnityEngine;
     using UnityEditor;
     using System.Reflection;
     using System.Linq;
@@ -29,7 +30,10 @@
             launchers.Clear();
             LoadErrors = string.Empty;
             List<CodeEditor.Installation> installations = new List<CodeEditor.Installation>();
-            foreach (System.Type type in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && typeof(ILauncher).IsAssignableFrom(t)))
+            Assembly assembly = System.AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "EasyEditor.Launchers");
+            Debug.Assert(assembly != null, "Couldn't find the EasyEditor.Launchers assembly");
+
+            foreach (System.Type type in assembly.GetTypes().Where(t => t.IsClass && typeof(ILauncher).IsAssignableFrom(t)))
             {
                 ILauncher instance = (ILauncher)System.Activator.CreateInstance(type);
 

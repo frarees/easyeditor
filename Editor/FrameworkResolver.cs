@@ -1,5 +1,6 @@
 ﻿namespace EasyEditor
 {
+    using EasyEditor.Reflected;
     using UnityEditor;
     using System.IO;
     using System.Collections.Generic;
@@ -9,8 +10,7 @@
     internal static class FrameworkResolver
     {
         public static string[] AvailableFrameworkPaths { get; }
-        // TODO add Windows and Linux support
-        private static string RootPath => EditorApplication.applicationPath + "/Contents/MonoBleedingEdge/lib/mono";
+        private static string RootPath => MonoInstallationFinder.GetProfilesDirectory(MonoInstallationFinder.MonoBleedingEdgeInstallation);
 
         static FrameworkResolver()
         {
