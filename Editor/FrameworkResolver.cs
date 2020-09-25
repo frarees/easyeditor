@@ -1,10 +1,10 @@
-﻿namespace EasyEditor
+namespace EasyEditor
 {
     using EasyEditor.Reflected;
-    using UnityEditor;
-    using System.IO;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using UnityEditor;
 
     [InitializeOnLoad]
     internal static class FrameworkResolver

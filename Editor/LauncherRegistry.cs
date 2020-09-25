@@ -1,11 +1,11 @@
-﻿namespace EasyEditor
+namespace EasyEditor
 {
-    using UnityEngine;
-    using Unity.CodeEditor;
-    using System.IO;
-    using System.Reflection;
-    using System.Linq;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using Unity.CodeEditor;
+    using UnityEngine;
 
     internal static class LauncherRegistry
     {

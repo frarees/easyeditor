@@ -1,9 +1,9 @@
-﻿namespace EasyEditor
+namespace EasyEditor
 {
-    using UnityEngine;
-    using UnityEditor;
-    using Unity.CodeEditor;
     using System.IO;
+    using Unity.CodeEditor;
+    using UnityEditor;
+    using UnityEngine;
 
     [InitializeOnLoad]
     internal static class Preferences

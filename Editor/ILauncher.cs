@@ -1,4 +1,4 @@
-﻿namespace EasyEditor
+namespace EasyEditor
 {
     using Unity.CodeEditor;
 

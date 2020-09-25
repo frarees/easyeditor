@@ -1,10 +1,10 @@
-﻿namespace EasyEditor.Launchers
+namespace EasyEditor.Launchers
 {
     using System.Diagnostics;
     using System.Linq;
     using Unity.CodeEditor;
-    using UnityEngine;
     using UnityEditor;
+    using UnityEngine;
 
     internal class SublimeText : ILauncher
     {

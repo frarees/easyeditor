@@ -1,11 +1,11 @@
-﻿namespace EasyEditor.Launchers
+namespace EasyEditor.Launchers
 {
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
     using Unity.CodeEditor;
-    using UnityEngine;
     using UnityEditor;
-    using System.IO;
+    using UnityEngine;
 
     internal class GVim : ILauncher
     {

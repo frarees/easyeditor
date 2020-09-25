@@ -1,9 +1,9 @@
 namespace EasyEditor.Reflected
 {
-    using UnityEngine;
-    using UnityEditor;
     using System;
     using System.Reflection;
+    using UnityEditor;
+    using UnityEngine;
     using UnityEngine.Profiling;
 
     [InitializeOnLoad]

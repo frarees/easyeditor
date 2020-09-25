@@ -1,11 +1,11 @@
-﻿namespace EasyEditor
+namespace EasyEditor
 {
+    using EasyEditor.Reflected;
     using System.IO;
     using System.Linq;
     using Unity.CodeEditor;
-    using UnityEngine;
     using UnityEditor;
-    using EasyEditor.Reflected;
+    using UnityEngine;
 
     [InitializeOnLoad]
     internal class ExternalCodeEditor : IExternalCodeEditor

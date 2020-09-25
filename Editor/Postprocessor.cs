@@ -1,8 +1,8 @@
-﻿namespace EasyEditor
+namespace EasyEditor
 {
-    using UnityEditor;
     using System.IO;
     using System.Xml;
+    using UnityEditor;
 
     internal class Postprocessor : AssetPostprocessor
     {
