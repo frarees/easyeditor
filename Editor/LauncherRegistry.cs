@@ -2,9 +2,10 @@
 {
     using UnityEngine;
     using UnityEditor;
+    using Unity.CodeEditor;
+    using System.IO;
     using System.Reflection;
     using System.Linq;
-    using Unity.CodeEditor;
     using System.Collections.Generic;
 
     [InitializeOnLoad]
@@ -44,6 +45,11 @@
 
                 foreach (CodeEditor.Installation installation in instance.Installations)
                 {
+                    if (!File.Exists(installation.Path))
+                    {
+                        continue;
+                    }
+
                     if (!instance.MatchesExecutable(installation.Path))
                     {
                         LoadErrors += $"{installation.Name}: failed to verify executable {installation.Path}.\n";
