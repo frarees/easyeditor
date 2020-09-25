@@ -1,14 +1,12 @@
 ﻿namespace EasyEditor
 {
     using UnityEngine;
-    using UnityEditor;
     using Unity.CodeEditor;
     using System.IO;
     using System.Reflection;
     using System.Linq;
     using System.Collections.Generic;
 
-    [InitializeOnLoad]
     internal static class LauncherRegistry
     {
         public static CodeEditor.Installation[] Installations { get; set; }
@@ -17,7 +15,6 @@
 
         static LauncherRegistry()
         {
-            Load();
         }
 
         public static ILauncher GetLauncher(string editorPath)

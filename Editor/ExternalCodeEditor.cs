@@ -12,6 +12,7 @@
     {
         static ExternalCodeEditor()
         {
+            LauncherRegistry.Load();
             CodeEditor.Register(new ExternalCodeEditor());
         }
 

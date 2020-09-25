@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2020-09-25
+### Added
+- gVim 8.1 and 8.2 support for Windows.
+- Sublime Text 3 support for Windows.
+
 ## [0.4.1] - 2020-09-25
 ### Changed
 - Don't try to validate an executable if the file doesn't exist in the first place.

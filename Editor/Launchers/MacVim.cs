@@ -6,18 +6,20 @@
     using UnityEngine;
     using UnityEditor;
 
-    internal class Vim : ILauncher
+    internal class MacVim : ILauncher
     {
-        private static readonly string PrefPrefix = $"{typeof(Vim).FullName}";
+        private static readonly string PrefPrefix = $"{typeof(MacVim).FullName}";
         private static readonly string PrefRestartOmniSharp = $"{PrefPrefix}.RestartOmniSharp";
 
         public CodeEditor.Installation[] Installations => new CodeEditor.Installation[]
         {
+#if UNITY_EDITOR_OSX
             new CodeEditor.Installation()
             {
                 Name = "MacVim",
                 Path = "/usr/local/bin/mvim",
             },
+#endif
         };
 
         public bool Launch(string editorPath, LaunchDescriptor descriptor)

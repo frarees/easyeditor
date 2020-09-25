@@ -5,32 +5,32 @@
     using Unity.CodeEditor;
     using UnityEngine;
     using UnityEditor;
+    using System.IO;
 
-    internal class SublimeText : ILauncher
+    internal class GVim : ILauncher
     {
-        private static readonly string PrefPrefix = $"{typeof(SublimeText).FullName}";
+        private static readonly string PrefPrefix = $"{typeof(GVim).FullName}";
         private static readonly string PrefRestartOmniSharp = $"{PrefPrefix}.RestartOmniSharp";
 
         public CodeEditor.Installation[] Installations => new CodeEditor.Installation[]
         {
-#if UNITY_EDITOR_OSX
+#if UNITY_EDITOR_WIN
             new CodeEditor.Installation()
             {
-                Name = "Sublime Text",
-                Path = "/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl",
+                Name = "gVim 8.2",
+                Path = @"C:\Program Files (x86)\Vim\vim82\gvim.exe",
             },
-#elif UNITY_EDITOR_WIN
             new CodeEditor.Installation()
             {
-                Name = "Sublime Text 3",
-                Path = @"C:\Program Files\Sublime Text 3\subl.exe"
+                Name = "gVim 8.1",
+                Path = @"C:\Program Files (x86)\Vim\vim81\gvim.exe",
             },
 #endif
         };
 
         public bool Launch(string editorPath, LaunchDescriptor descriptor)
         {
-            string args = string.Format("$(File):$(Line):$(Column)", descriptor.ProjectName);
+            string args = string.Format("--servername \"{0}\" --remote-silent +$(Line) $(File)", descriptor.ProjectName);
 
             Process process = new Process
             {
@@ -51,7 +51,7 @@
 
         private void ReloadOmniSharpServer()
         {
-            string args = "-b --command OmniSharpRestartServer";
+            string args = string.Format("--servername \"{0}\" --remote-send '<C-\\><C-N>:silent OmniSharpRestartServer<CR>'", Preferences.ProjectName);
 
             Process process = new Process
             {
@@ -86,11 +86,12 @@
 
         public bool MatchesExecutable(string editorPath)
         {
+            string vimPath = Path.Combine(Path.GetDirectoryName(editorPath), "vim.exe");
             Process process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = editorPath,
+                    FileName = vimPath,
                     Arguments = "--version",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     CreateNoWindow = true,
@@ -105,7 +106,7 @@
             }
 
             string output = process.StandardOutput.ReadToEnd();
-            return output.StartsWith("Sublime Text");
+            return output.StartsWith("VIM - Vi IMproved");
         }
 
         public void OnGUI()
@@ -113,7 +114,7 @@
             EditorGUI.BeginChangeCheck();
             GUIContent matchCompilerContent = new GUIContent(
                 "Restart OmniSharp server on sync",
-                "Upon synchronization, send a command (--command) to Sublime Text to trigger a OmniSharp server reload. omnisharp-sublime required.");
+                "Upon synchronization, send a command (--remote-send) to the gVim server to trigger a OmniSharp server reload. omnisharp-vim required.");
             bool b = EditorGUILayout.Toggle(matchCompilerContent, EditorPrefs.GetBool(PrefRestartOmniSharp));
             if (EditorGUI.EndChangeCheck())
             {
