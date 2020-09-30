@@ -112,10 +112,10 @@ namespace EasyEditor.Launchers
         public void OnGUI()
         {
             EditorGUI.BeginChangeCheck();
-            GUIContent matchCompilerContent = new GUIContent(
+            GUIContent restartOmniSharpContent = new GUIContent(
                 "Restart OmniSharp server on sync",
                 "Upon synchronization, send a command (--remote-send) to the gVim server to trigger a OmniSharp server reload. omnisharp-vim required.");
-            bool b = EditorGUILayout.Toggle(matchCompilerContent, EditorPrefs.GetBool(PrefRestartOmniSharp));
+            bool b = EditorGUILayout.Toggle(restartOmniSharpContent, EditorPrefs.GetBool(PrefRestartOmniSharp));
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool(PrefRestartOmniSharp, b);
