@@ -41,6 +41,7 @@ Select your favourite [external script editor](https://docs.unity3d.com/Manual/P
 | Editor         | Windows | macOS | Linux |
 | :------------: | :-----: | :---: | :---: |
 | MacVim         |         | ✅    |       |
+| VimR           |         | ✅    |       |
 | gVim           | ✅      |       |       |
 | Sublime Text 3 | ✅      | ✅    |       |
 
