@@ -8,14 +8,33 @@ namespace EasyEditor
     [InitializeOnLoad]
     internal static class Preferences
     {
-        static Preferences()
+        [InitializeOnLoad]
+        public static class Settings
         {
-            ProjectPath = Application.dataPath.Substring(0, Application.dataPath.Length - 6);
-            ProjectName = Path.GetFileName(Path.GetDirectoryName(ProjectPath));
+            public static readonly Setting autoSync;
+            public static readonly Setting matchCompilerVersion;
+
+            static Settings()
+            {
+                autoSync = new Setting(
+                    "AutoSync",
+                    "Sync solution and project files",
+                    "Forces .sln and .csproj files to be generated and kept in sync.");
+                matchCompilerVersion = new Setting(
+                    "MatchCompilerVersion",
+                    "Match compiler version",
+                    "When Unity creates or updates .csproj files, it defines LangVersion as 'latest'. This can create inconsistencies with other .NET platforms (e.g. OmniSharp), which could resolve 'latest' as a different version. By matching compiler version, 'latest' will get resolved as " + GetLangVersion() + ". ");
+            }
         }
 
-        public static string ProjectPath { get; private set; }
-        public static string ProjectName { get; private set; }
+        static Preferences()
+        {
+            projectPath = Application.dataPath.Substring(0, Application.dataPath.Length - 6);
+            projectName = Path.GetFileName(Path.GetDirectoryName(projectPath));
+        }
+
+        public static readonly string projectPath;
+        public static readonly string projectName;
 
         public static bool IsActive => CodeEditor.CurrentEditor is ExternalCodeEditor;
 
@@ -26,22 +45,6 @@ namespace EasyEditor
 #else
             return "7.3";
 #endif
-        }
-
-        public const string prefPrefix = "EasyEditor.";
-
-        private const string prefMatchCompilerVersion = prefPrefix + "MatchCompilerVersion";
-        public static bool MatchCompilerVersion
-        {
-            get => EditorPrefs.GetBool(prefMatchCompilerVersion);
-            set => EditorPrefs.SetBool(prefMatchCompilerVersion, value);
-        }
-
-        private const string prefAutoSync = prefPrefix + "AutoSync";
-        public static bool AutoSync
-        {
-            get => EditorPrefs.GetBool(prefAutoSync);
-            set => EditorPrefs.SetBool(prefAutoSync, value);
         }
     }
 }

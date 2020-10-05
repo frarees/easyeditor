@@ -16,7 +16,7 @@ namespace EasyEditor
 
             if (!SyncVS.IsValid)
             {
-                Preferences.AutoSync = false;
+                Preferences.Settings.autoSync.SetBool(false);
             }
         }
 
@@ -29,7 +29,7 @@ namespace EasyEditor
         {
             IsReloading = false;
 
-            if (Preferences.AutoSync)
+            if (Preferences.Settings.autoSync.GetBool())
             {
                 Sync();
             }

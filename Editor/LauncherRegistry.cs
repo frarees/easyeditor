@@ -11,15 +11,15 @@ namespace EasyEditor
     {
         public static CodeEditor.Installation[] Installations { get; set; }
         public static string LoadErrors { get; private set; }
-        private static readonly Dictionary<string, ILauncher> launchers = new Dictionary<string, ILauncher>();
+        private static readonly Dictionary<string, Launcher> launchers = new Dictionary<string, Launcher>();
 
         static LauncherRegistry()
         {
         }
 
-        public static ILauncher GetLauncher(string editorPath)
+        public static Launcher GetLauncher(string editorPath)
         {
-            _ = launchers.TryGetValue(editorPath, out ILauncher launcher);
+            _ = launchers.TryGetValue(editorPath, out Launcher launcher);
             return launcher;
         }
 
@@ -31,9 +31,9 @@ namespace EasyEditor
             Assembly assembly = System.AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "EasyEditor.Launchers");
             Debug.Assert(assembly != null, "Couldn't find the EasyEditor.Launchers assembly");
 
-            foreach (System.Type type in assembly.GetTypes().Where(t => t.IsClass && typeof(ILauncher).IsAssignableFrom(t)))
+            foreach (System.Type type in assembly.GetTypes().Where(t => t.IsClass && typeof(Launcher).IsAssignableFrom(t)))
             {
-                ILauncher instance = (ILauncher)System.Activator.CreateInstance(type);
+                Launcher instance = (Launcher)System.Activator.CreateInstance(type);
 
                 if (instance.Installations == null)
                 {

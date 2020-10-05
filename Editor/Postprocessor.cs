@@ -13,7 +13,7 @@ namespace EasyEditor
                 return;
             }
 
-            if (Preferences.MatchCompilerVersion)
+            if (Preferences.Settings.matchCompilerVersion.GetBool())
             {
                 WriteLangVersions();
             }
@@ -21,7 +21,7 @@ namespace EasyEditor
 
         private static void WriteLangVersions()
         {
-            foreach (string path in Directory.GetFiles(Preferences.ProjectPath, "*.csproj"))
+            foreach (string path in Directory.GetFiles(Preferences.projectPath, "*.csproj"))
             {
                 XmlDocument document = new XmlDocument();
                 document.Load(path);

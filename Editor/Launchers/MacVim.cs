@@ -6,12 +6,19 @@ namespace EasyEditor.Launchers
     using UnityEditor;
     using UnityEngine;
 
-    internal class MacVim : ILauncher
+    internal class MacVim : Launcher
     {
-        private static readonly string PrefPrefix = $"{typeof(MacVim).FullName}";
-        private static readonly string PrefRestartOmniSharp = $"{PrefPrefix}.RestartOmniSharp";
+        [InitializeOnLoad]
+        private static class Settings
+        {
+            public static readonly Setting restartOmniSharp = new Setting(
+                "RestartOmniSharp",
+                "Restart OmniSharp server on sync",
+                "Upon synchronization, send a command (--remote-send) to the Vim server to trigger a OmniSharp server reload. omnisharp-vim required.",
+                "MacVim");
+        }
 
-        public CodeEditor.Installation[] Installations => new CodeEditor.Installation[]
+        public override CodeEditor.Installation[] Installations => new CodeEditor.Installation[]
         {
 #if UNITY_EDITOR_OSX
             new CodeEditor.Installation()
@@ -22,7 +29,7 @@ namespace EasyEditor.Launchers
 #endif
         };
 
-        public bool Launch(string editorPath, LaunchDescriptor descriptor)
+        public override bool Launch(string editorPath, LaunchDescriptor descriptor)
         {
             string args = string.Format("--servername \"{0}\" --remote-silent '+call cursor($(Line),$(Column))' $(File)", descriptor.ProjectName);
 
@@ -45,7 +52,7 @@ namespace EasyEditor.Launchers
 
         private void ReloadOmniSharpServer()
         {
-            string args = string.Format("--servername \"{0}\" --remote-send '<C-\\><C-N>:silent OmniSharpRestartServer<CR>'", Preferences.ProjectName);
+            string args = string.Format("--servername \"{0}\" --remote-send '<C-\\><C-N>:silent OmniSharpRestartServer<CR>'", Preferences.projectName);
 
             Process process = new Process
             {
@@ -62,23 +69,23 @@ namespace EasyEditor.Launchers
             _ = process.Start();
         }
 
-        public void SyncAll()
+        public override void SyncAll()
         {
-            if (Preferences.IsActive && EditorPrefs.GetBool(PrefRestartOmniSharp))
+            if (Preferences.IsActive && Settings.restartOmniSharp.GetBool())
             {
                 ReloadOmniSharpServer();
             }
         }
 
-        public void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles)
+        public override void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles)
         {
-            if (Preferences.IsActive && EditorPrefs.GetBool(PrefRestartOmniSharp))
+            if (Preferences.IsActive && Settings.restartOmniSharp.GetBool())
             {
                 ReloadOmniSharpServer();
             }
         }
 
-        public bool MatchesExecutable(string editorPath)
+        public override bool MatchesExecutable(string editorPath)
         {
             Process process = new Process
             {
@@ -102,16 +109,15 @@ namespace EasyEditor.Launchers
             return output.StartsWith("VIM - Vi IMproved");
         }
 
-        public void OnGUI()
+        public override void OnGUI()
         {
             EditorGUI.BeginChangeCheck();
-            GUIContent restartOmniSharpContent = new GUIContent(
-                "Restart OmniSharp server on sync",
-                "Upon synchronization, send a command (--remote-send) to the Vim server to trigger a OmniSharp server reload. omnisharp-vim required.");
-            bool b = EditorGUILayout.Toggle(restartOmniSharpContent, EditorPrefs.GetBool(PrefRestartOmniSharp));
+            Setting s = Settings.restartOmniSharp;
+            GUIContent c = new GUIContent(s.description, s.tooltip);
+            bool b = EditorGUILayout.Toggle(c, s.GetBool());
             if (EditorGUI.EndChangeCheck())
             {
-                EditorPrefs.SetBool(PrefRestartOmniSharp, b);
+                s.SetBool(b);
                 Event.current.Use();
             }
         }

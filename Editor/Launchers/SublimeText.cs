@@ -6,12 +6,19 @@ namespace EasyEditor.Launchers
     using UnityEditor;
     using UnityEngine;
 
-    internal class SublimeText : ILauncher
+    internal class SublimeText : Launcher
     {
-        private static readonly string PrefPrefix = $"{typeof(SublimeText).FullName}";
-        private static readonly string PrefRestartOmniSharp = $"{PrefPrefix}.RestartOmniSharp";
+        [InitializeOnLoad]
+        private static class Settings
+        {
+            public static readonly Setting restartOmniSharp = new Setting(
+                "RestartOmniSharp",
+                "Restart OmniSharp server on sync",
+                "Upon synchronization, send a command (--command) to Sublime Text to trigger a OmniSharp server reload. omnisharp-sublime required.",
+                "SublimeText");
+        }
 
-        public CodeEditor.Installation[] Installations => new CodeEditor.Installation[]
+        public override CodeEditor.Installation[] Installations => new CodeEditor.Installation[]
         {
 #if UNITY_EDITOR_OSX
             new CodeEditor.Installation()
@@ -28,7 +35,7 @@ namespace EasyEditor.Launchers
 #endif
         };
 
-        public bool Launch(string editorPath, LaunchDescriptor descriptor)
+        public override bool Launch(string editorPath, LaunchDescriptor descriptor)
         {
             string args = string.Format("$(File):$(Line):$(Column)", descriptor.ProjectName);
 
@@ -68,23 +75,23 @@ namespace EasyEditor.Launchers
             _ = process.Start();
         }
 
-        public void SyncAll()
+        public override void SyncAll()
         {
-            if (Preferences.IsActive && EditorPrefs.GetBool(PrefRestartOmniSharp))
+            if (Preferences.IsActive && Settings.restartOmniSharp.GetBool())
             {
                 ReloadOmniSharpServer();
             }
         }
 
-        public void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles)
+        public override void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles)
         {
-            if (Preferences.IsActive && EditorPrefs.GetBool(PrefRestartOmniSharp))
+            if (Preferences.IsActive && Settings.restartOmniSharp.GetBool())
             {
                 ReloadOmniSharpServer();
             }
         }
 
-        public bool MatchesExecutable(string editorPath)
+        public override bool MatchesExecutable(string editorPath)
         {
             Process process = new Process
             {
@@ -108,16 +115,15 @@ namespace EasyEditor.Launchers
             return output.StartsWith("Sublime Text");
         }
 
-        public void OnGUI()
+        public override void OnGUI()
         {
             EditorGUI.BeginChangeCheck();
-            GUIContent restartOmniSharpContent = new GUIContent(
-                "Restart OmniSharp server on sync",
-                "Upon synchronization, send a command (--command) to Sublime Text to trigger a OmniSharp server reload. omnisharp-sublime required.");
-            bool b = EditorGUILayout.Toggle(restartOmniSharpContent, EditorPrefs.GetBool(PrefRestartOmniSharp));
+            Setting s = Settings.restartOmniSharp;
+            GUIContent c = new GUIContent(s.description, s.tooltip);
+            bool b = EditorGUILayout.Toggle(c, s.GetBool());
             if (EditorGUI.EndChangeCheck())
             {
-                EditorPrefs.SetBool(PrefRestartOmniSharp, b);
+                s.SetBool(b);
                 Event.current.Use();
             }
         }

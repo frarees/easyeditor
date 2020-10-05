@@ -9,9 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Support for VimR on macOS.
+- Setting class to define launcher settings.
+- Unregister Easy Editor before the assembly reloads.
 - Documentation.
 
 ### Changed
+- Launchers inherit from abstract class (Launcher) instead of interface (ILauncher).
 - Fix changelog links.
 - Clarify comments on former changelogs.
 

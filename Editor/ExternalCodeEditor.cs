@@ -10,10 +10,14 @@ namespace EasyEditor
     [InitializeOnLoad]
     internal class ExternalCodeEditor : IExternalCodeEditor
     {
+        public static readonly ExternalCodeEditor instance;
+
         static ExternalCodeEditor()
         {
             LauncherRegistry.Load();
-            CodeEditor.Register(new ExternalCodeEditor());
+            instance = new ExternalCodeEditor();
+            CodeEditor.Register(instance);
+            AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
         }
 
         public CodeEditor.Installation[] Installations { get; }
@@ -36,6 +40,11 @@ namespace EasyEditor
             return !string.IsNullOrEmpty(extension) && DefaultExtensions.Contains(extension.TrimStart('.'));
         }
 
+        private static void OnBeforeAssemblyReload()
+        {
+            CodeEditor.Unregister(instance);
+        }
+
         public ExternalCodeEditor()
         {
             Installations = LauncherRegistry.Installations;
@@ -43,7 +52,7 @@ namespace EasyEditor
 
         public void Initialize(string editorInstallationPath)
         {
-            if (Preferences.IsActive && Preferences.AutoSync)
+            if (Preferences.IsActive && Preferences.Settings.autoSync.GetBool())
             {
                 SyncUtil.Sync();
             }
@@ -57,42 +66,44 @@ namespace EasyEditor
             }
 
             EditorGUI.BeginDisabledGroup(!Preferences.IsActive || !SyncVS.IsValid || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
-            EditorGUI.BeginChangeCheck();
-            GUIContent syncContent = new GUIContent(
-                "Sync solution and project files",
-                "Forces .sln and .csproj files to be generated and kept in sync.");
-            bool v = EditorGUILayout.Toggle(syncContent, Preferences.AutoSync);
-            if (EditorGUI.EndChangeCheck())
             {
-                Preferences.AutoSync = v;
-                if (v)
+                EditorGUI.BeginChangeCheck();
+                Setting s = Preferences.Settings.autoSync;
+                GUIContent c = new GUIContent(s.description, s.tooltip);
+                bool v = EditorGUILayout.Toggle(c, s.GetBool());
+                if (EditorGUI.EndChangeCheck())
                 {
-                    SyncUtil.Sync();
+                    s.SetBool(v);
+                    if (v)
+                    {
+                        SyncUtil.Sync();
+                    }
+                    Event.current.Use();
                 }
-                Event.current.Use();
             }
             if (!SyncVS.IsValid)
             {
                 EditorGUILayout.HelpBox("Couldn't retrieve synchronization members. Please contact this package's author.", MessageType.Warning);
             }
 
-            EditorGUI.BeginChangeCheck();
-            GUIContent matchCompilerContent = new GUIContent(
-                "Match compiler version",
-                "When Unity creates or updates .csproj files, it defines LangVersion as 'latest'. This can create inconsistencies with other .NET platforms (e.g. OmniSharp), which could resolve 'latest' as a different version. By matching compiler version, 'latest' will get resolved as " + Preferences.GetLangVersion() + ". ");
-            v = EditorGUILayout.Toggle(matchCompilerContent, Preferences.MatchCompilerVersion);
-            if (EditorGUI.EndChangeCheck())
             {
-                Preferences.MatchCompilerVersion = v;
-                if (v)
+                EditorGUI.BeginChangeCheck();
+                Setting s = Preferences.Settings.matchCompilerVersion;
+                GUIContent c = new GUIContent(s.description, s.tooltip);
+                bool v = EditorGUILayout.Toggle(c, s.GetBool());
+                if (EditorGUI.EndChangeCheck())
                 {
-                    SyncUtil.Sync();
+                    s.SetBool(v);
+                    if (v)
+                    {
+                        SyncUtil.Sync();
+                    }
+                    Event.current.Use();
                 }
-                Event.current.Use();
             }
 
             string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-            ILauncher launcher = LauncherRegistry.GetLauncher(editorPath);
+            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
             if (launcher != null)
             {
                 launcher.OnGUI();
@@ -120,9 +131,9 @@ namespace EasyEditor
 
             string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
 
-            LaunchDescriptor descriptor = new LaunchDescriptor(filePath, line, column, Preferences.ProjectPath, Preferences.ProjectName);
+            LaunchDescriptor descriptor = new LaunchDescriptor(filePath, line, column, Preferences.projectPath, Preferences.projectName);
 
-            ILauncher launcher = LauncherRegistry.GetLauncher(editorPath);
+            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
             if (launcher != null)
             {
                 _ = launcher.Launch(editorPath, descriptor);
@@ -135,7 +146,7 @@ namespace EasyEditor
         {
             SyncUtil.Sync();
             string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-            ILauncher launcher = LauncherRegistry.GetLauncher(editorPath);
+            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
             if (launcher != null)
             {
                 launcher.SyncAll();
@@ -146,7 +157,7 @@ namespace EasyEditor
         {
             SyncUtil.Sync();
             string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-            ILauncher launcher = LauncherRegistry.GetLauncher(editorPath);
+            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
             if (launcher != null)
             {
                 launcher.SyncIfNeeded(addedFiles, deletedFiles, movedFiles, movedFromFiles, importedFiles);
