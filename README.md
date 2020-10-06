@@ -17,7 +17,7 @@ https://github.com/frarees/easyeditor.git
 Alternatively, you can install a specific version:
 
 ```
-https://github.com/frarees/easyeditor.git#0.4.3
+https://github.com/frarees/easyeditor.git#v0.5.0
 ```
 
 2. Install via [local tarball](https://docs.unity3d.com/Manual/upm-ui-tarball.html):
