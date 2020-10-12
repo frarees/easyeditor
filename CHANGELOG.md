@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.1] - 2020-10-12
+
+### Added
+- Notes on limitations.
+- Notes on setting up a development environment.
+- `package.json` EditorConfig rules.
+- .NET EditorConfig rules.
+
+### Changed
+- Don't include the README in the package.
+
 ## [0.5.0] - 2020-10-06
 
 ### Added
@@ -7,7 +18,6 @@
 - Setting class to define launcher settings.
 - Unregister Easy Editor before the assembly reloads.
 - Documentation.
-- Package Publishing to GitHub.
 
 ### Changed
 - Launchers inherit from abstract class (Launcher) instead of interface (ILauncher).
@@ -75,6 +85,8 @@
 - Support for MacVim on macOS.
 - Support for Sublime Text 3 on macOS.
 
+[Unreleased]: https://github.com/frarees/easyeditor/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/frarees/easyeditor/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/frarees/easyeditor/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/frarees/easyeditor/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/frarees/easyeditor/compare/v0.4.1...v0.4.2
