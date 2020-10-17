@@ -3,22 +3,31 @@ namespace EasyEditor
     using System.IO;
     using System.Xml;
     using UnityEditor;
+#if !UNITY_2020_2_OR_NEWER
+    using Unity.CodeEditor;
+#endif
 
     internal class Postprocessor : AssetPostprocessor
     {
         private static void OnGeneratedCSProjectFiles()
         {
+#if !UNITY_2020_2_OR_NEWER
             if (!Preferences.IsActive)
             {
                 return;
             }
 
-            if (Preferences.Settings.matchCompilerVersion.GetBool())
+            if (Registry.Instance.TryGetDiscoveryFromEditorPath(CodeEditor.CurrentEditorInstallation, out Discovery discovery))
             {
-                WriteLangVersions();
+                if (discovery.MatchCompilerVersion)
+                {
+                    WriteLangVersions();
+                }
             }
+#endif
         }
 
+#if !UNITY_2020_2_OR_NEWER
         private static void WriteLangVersions()
         {
             foreach (string path in Directory.GetFiles(Preferences.projectPath, "*.csproj"))
@@ -32,6 +41,7 @@ namespace EasyEditor
                 document.Save(path);
             }
         }
+#endif
     }
 }
 

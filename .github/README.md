@@ -46,6 +46,8 @@ Select your favourite [external script editor](https://docs.unity3d.com/Manual/P
 | VimR           |         | ✅    |       |
 | gVim           | ✅      |       |       |
 | Sublime Text 3 | ✅      | ✅    |       |
+| CotEditor      |         | ✅    |       |
+| BBEdit         |         | ✅    |       |
 
 _gVim versions 8.1 and 8.2._
 

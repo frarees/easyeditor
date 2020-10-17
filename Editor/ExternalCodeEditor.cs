@@ -1,6 +1,8 @@
 namespace EasyEditor
 {
     using EasyEditor.Reflected;
+    using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using Unity.CodeEditor;
@@ -10,28 +12,39 @@ namespace EasyEditor
     [InitializeOnLoad]
     internal class ExternalCodeEditor : IExternalCodeEditor
     {
-        public static readonly ExternalCodeEditor instance;
-
-        static ExternalCodeEditor()
+        private class Properties
         {
-            LauncherRegistry.Load();
-            instance = new ExternalCodeEditor();
-            CodeEditor.Register(instance);
-            AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
+            public static readonly GUIContent arguments = EditorGUIUtility.TrTextContent("Arguments");
+            public static readonly GUIContent reset = EditorGUIUtility.TrTextContent("Reset");
+            public static readonly GUIContent generate = EditorGUIUtility.TrTextContent("Generate");
+            public static readonly GUIContent autoGenerate = EditorGUIUtility.TrTextContent("Generate solution and project files", "Forces .sln and .csproj files to be generated and kept in sync.");
+#if !UNITY_2020_2_OR_NEWER 
+            public static readonly GUIContent matchCompilerVersion = EditorGUIUtility.TrTextContent("Match compiler version", "When Unity creates or updates .csproj files, it defines LangVersion as 'latest'. This can create inconsistencies with other .NET platforms (e.g. OmniSharp), which could resolve 'latest' as a different version. By matching compiler version, 'latest' will get resolved as " + Preferences.GetLangVersion() + ". ");
+#endif
+            public static readonly GUIContent exportFrameworkPathOverride = EditorGUIUtility.TrTextContent("Export FrameworkPathOverride", FrameworkResolver.LastAvailableFrameworkPath != null ? "When invoking the text editor, sets the environment variable FrameworkPathOverride to " + FrameworkResolver.LastAvailableFrameworkPath : string.Empty);
+
+            public static readonly GUIContent syncVsFail = EditorGUIUtility.TrTextContent("Couldn't reflect SyncVS members successfully.");
+            public static readonly GUIContent monoInstallationFinderFail = EditorGUIUtility.TrTextContent("Couldn't reflect MonoInstallationFinder members successfully.");
+            public static readonly GUIContent discoveryFail = EditorGUIUtility.TrTextContent("Easy Editor couldn't load the discovery.");
         }
+
+        public static readonly ExternalCodeEditor instance;
+        private static IEnumerable<string> DefaultExtensions { get; }
 
         public CodeEditor.Installation[] Installations { get; }
 
-        private static string[] DefaultExtensions
+        static ExternalCodeEditor()
         {
-            get
-            {
-                string[] customExtensions = new[] { "json", "asmdef", "log" };
-                return EditorSettings.projectGenerationBuiltinExtensions
+            DefaultExtensions = EditorSettings.projectGenerationBuiltinExtensions
                     .Concat(EditorSettings.projectGenerationUserExtensions)
-                    .Concat(customExtensions)
-                    .Distinct().ToArray();
-            }
+                    .Concat(new[] { "json", "asmdef", "log" })
+                    .Distinct();
+
+            instance = new ExternalCodeEditor();
+            CodeEditor.Register(instance);
+
+            AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
+            AssemblyReloadEvents.afterAssemblyReload += OnAfterAssemblyReload;
         }
 
         private static bool SupportsExtension(string path)
@@ -40,73 +53,130 @@ namespace EasyEditor
             return !string.IsNullOrEmpty(extension) && DefaultExtensions.Contains(extension.TrimStart('.'));
         }
 
+        private static void OnAfterAssemblyReload()
+        {
+            if (Registry.Instance.TryGetDiscoveryFromEditorPath(CodeEditor.CurrentEditorInstallation, out Discovery discovery))
+            {
+                if (discovery.AutoGenerate)
+                {
+                    SyncUtil.Sync();
+                }
+            }
+        }
+
         private static void OnBeforeAssemblyReload()
         {
             CodeEditor.Unregister(instance);
         }
 
-        public ExternalCodeEditor()
+        private ExternalCodeEditor()
         {
-            Installations = LauncherRegistry.Installations;
+            if (Registry.LoadInstance())
+            {
+                Installations = Registry.Instance.GetInstallations();
+            }
         }
 
         public void Initialize(string editorInstallationPath)
         {
-            if (Preferences.IsActive && Preferences.Settings.autoSync.GetBool())
+            if (Registry.Instance.TryGetDiscoveryFromEditorPath(CodeEditor.CurrentEditorInstallation, out Discovery discovery))
             {
-                SyncUtil.Sync();
+                if (discovery.AutoGenerate)
+                {
+                    SyncUtil.Sync();
+                }
             }
         }
 
         public void OnGUI()
         {
-            if (!string.IsNullOrEmpty(LauncherRegistry.LoadErrors))
+            string editorPath = CodeEditor.CurrentEditorInstallation;
+            if (!Registry.Instance.TryGetDiscoveryFromEditorPath(editorPath, out Discovery discovery))
             {
-                EditorGUILayout.HelpBox(LauncherRegistry.LoadErrors, MessageType.Warning);
+                EditorGUILayout.HelpBox(Properties.discoveryFail.text, MessageType.Error);
+                return;
             }
 
-            EditorGUI.BeginDisabledGroup(!Preferences.IsActive || !SyncVS.IsValid || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
+            EditorGUI.BeginDisabledGroup(!Preferences.IsActive || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
+
+            if (!string.IsNullOrEmpty(discovery.notes))
             {
-                EditorGUI.BeginChangeCheck();
-                Setting s = Preferences.Settings.autoSync;
-                GUIContent c = new GUIContent(s.description, s.tooltip);
-                bool v = EditorGUILayout.Toggle(c, s.GetBool());
-                if (EditorGUI.EndChangeCheck())
+                EditorGUILayout.HelpBox(discovery.notes, MessageType.Info);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUI.BeginChangeCheck();
+            string arguments = EditorGUILayout.TextField(Properties.arguments, discovery.Arguments);
+            if (EditorGUI.EndChangeCheck())
+            {
+                discovery.Arguments = arguments;
+            }
+
+            if (GUILayout.Button(Properties.reset, EditorStyles.miniButton, GUILayout.Width(64f)))
+            {
+                discovery.Arguments = discovery.defaultArguments;
+                GUIUtility.keyboardControl = 0;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUI.BeginDisabledGroup(!SyncVS.IsValid);
+
+            EditorGUILayout.BeginHorizontal();
+
+            EditorGUI.BeginChangeCheck();
+            bool autoGenerate = EditorGUILayout.Toggle(Properties.autoGenerate, discovery.AutoGenerate);
+            if (EditorGUI.EndChangeCheck())
+            {
+                discovery.AutoGenerate = autoGenerate;
+                if (autoGenerate)
                 {
-                    s.SetBool(v);
-                    if (v)
-                    {
-                        SyncUtil.Sync();
-                    }
-                    Event.current.Use();
+                    SyncUtil.Sync();
                 }
             }
+
+            if (GUILayout.Button(Properties.generate, EditorStyles.miniButton, GUILayout.Width(64f)))
+            {
+                SyncUtil.Sync();
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+#if !UNITY_2020_2_OR_NEWER
+            EditorGUI.BeginChangeCheck();
+            bool matchCompilerVersion = EditorGUILayout.Toggle(Properties.matchCompilerVersion, discovery.MatchCompilerVersion);
+            if (EditorGUI.EndChangeCheck())
+            {
+                discovery.MatchCompilerVersion = matchCompilerVersion;
+                if (matchCompilerVersion)
+                {
+                    SyncUtil.Sync();
+                }
+            }
+#endif
+            EditorGUI.EndDisabledGroup();
+
             if (!SyncVS.IsValid)
             {
-                EditorGUILayout.HelpBox("Couldn't retrieve synchronization members. Please contact this package's author.", MessageType.Warning);
+                EditorGUILayout.HelpBox(Properties.syncVsFail.text, MessageType.Warning);
             }
 
+            EditorGUI.BeginDisabledGroup(!MonoInstallationFinder.IsValid || !discovery.inheritsEnvironmentVariables);
+
+            if (discovery.inheritsEnvironmentVariables)
             {
                 EditorGUI.BeginChangeCheck();
-                Setting s = Preferences.Settings.matchCompilerVersion;
-                GUIContent c = new GUIContent(s.description, s.tooltip);
-                bool v = EditorGUILayout.Toggle(c, s.GetBool());
+                bool v = EditorGUILayout.Toggle(Properties.exportFrameworkPathOverride, discovery.ExportFrameworkPathOverride);
                 if (EditorGUI.EndChangeCheck())
                 {
-                    s.SetBool(v);
-                    if (v)
-                    {
-                        SyncUtil.Sync();
-                    }
-                    Event.current.Use();
+                    discovery.ExportFrameworkPathOverride = v;
                 }
             }
 
-            string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
-            if (launcher != null)
+            EditorGUI.EndDisabledGroup();
+
+            if (!MonoInstallationFinder.IsValid)
             {
-                launcher.OnGUI();
+                EditorGUILayout.HelpBox(Properties.monoInstallationFinderFail.text, MessageType.Warning);
             }
 
             EditorGUI.EndDisabledGroup();
@@ -130,37 +200,76 @@ namespace EasyEditor
             }
 
             string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-
-            LaunchDescriptor descriptor = new LaunchDescriptor(filePath, line, column, Preferences.projectPath, Preferences.projectName);
-
-            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
-            if (launcher != null)
+            if (Registry.Instance.TryGetDiscoveryFromEditorPath(editorPath, out Discovery discovery))
             {
-                _ = launcher.Launch(editorPath, descriptor);
+                string arguments = ParseArguments(discovery.Arguments, filePath, line, column);
+                bool success = Launch(editorPath, arguments, discovery);
+
+                if (!success)
+                {
+                    UnityEngine.Debug.LogWarning($"Failed invoking `{editorPath} {arguments}`");
+                }
+
+                return true;
             }
 
-            return true;
+            return false;
+        }
+
+        private string ParseArguments(string arguments, string filePath, int line, int column)
+        {
+            arguments = arguments.Replace("$(ProjectName)", Preferences.projectName);
+            arguments = CodeEditor.ParseArgument(arguments, filePath, line, column);
+
+            return arguments;
+        }
+
+        private bool Launch(string editorPath, string resolvedArguments, Discovery discovery)
+        {
+            if (discovery.requiresNativeOpen)
+            {
+                return CodeEditor.OSOpenFile(editorPath, resolvedArguments);
+            }
+
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = editorPath,
+                    Arguments = resolvedArguments,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                }
+            };
+
+            if (discovery.ExportFrameworkPathOverride)
+            {
+                process.StartInfo.EnvironmentVariables.Add("FrameworkPathOverride", FrameworkResolver.AvailableFrameworkPaths.LastOrDefault());
+            }
+
+            return process.Start();
         }
 
         public void SyncAll()
         {
-            SyncUtil.Sync();
-            string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
-            if (launcher != null)
+            if (Registry.Instance.TryGetDiscoveryFromEditorPath(CodeEditor.CurrentEditorInstallation, out Discovery discovery))
             {
-                launcher.SyncAll();
+                if (discovery.AutoGenerate)
+                {
+                    SyncUtil.Sync();
+                }
             }
         }
 
         public void SyncIfNeeded(string[] addedFiles, string[] deletedFiles, string[] movedFiles, string[] movedFromFiles, string[] importedFiles)
         {
-            SyncUtil.Sync();
-            string editorPath = CodeEditor.CurrentEditorInstallation.Trim();
-            Launcher launcher = LauncherRegistry.GetLauncher(editorPath);
-            if (launcher != null)
+            if (Registry.Instance.TryGetDiscoveryFromEditorPath(CodeEditor.CurrentEditorInstallation, out Discovery discovery))
             {
-                launcher.SyncIfNeeded(addedFiles, deletedFiles, movedFiles, movedFromFiles, importedFiles);
+                if (discovery.AutoGenerate)
+                {
+                    SyncUtil.Sync();
+                }
             }
         }
 

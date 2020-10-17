@@ -13,11 +13,6 @@ namespace EasyEditor
         {
             AssemblyReloadEvents.afterAssemblyReload += OnAfterAssemblyReload;
             AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
-
-            if (!SyncVS.IsValid)
-            {
-                Preferences.Settings.autoSync.SetBool(false);
-            }
         }
 
         private static void OnBeforeAssemblyReload()
@@ -28,15 +23,15 @@ namespace EasyEditor
         private static void OnAfterAssemblyReload()
         {
             IsReloading = false;
-
-            if (Preferences.Settings.autoSync.GetBool())
-            {
-                Sync();
-            }
         }
 
         public static void Sync()
         {
+            if (!SyncVS.IsValid)
+            {
+                return;
+            }
+
             Profiler.BeginSample("Sync Solution");
             SyncVS.CreateIfDoesntExist();
             SyncVS.SyncIfFirstFileOpenSinceDomainLoad();

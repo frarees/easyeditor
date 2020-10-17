@@ -10,16 +10,24 @@ namespace EasyEditor
     internal static class FrameworkResolver
     {
         public static string[] AvailableFrameworkPaths { get; }
-        private static string RootPath => MonoInstallationFinder.GetProfilesDirectory(MonoInstallationFinder.MonoBleedingEdgeInstallation);
+        public static string LastAvailableFrameworkPath { get; }
+        private static readonly string RootPath;
 
         static FrameworkResolver()
         {
-            AvailableFrameworkPaths = GetAvailableFrameworkPaths().ToArray();
+            if (!MonoInstallationFinder.IsValid)
+            {
+                return;
+            }
+
+            RootPath = MonoInstallationFinder.GetProfilesDirectory(MonoInstallationFinder.MonoBleedingEdgeInstallation);
+            AvailableFrameworkPaths = GetAvailableFrameworkPaths(RootPath).ToArray();
+            LastAvailableFrameworkPath = AvailableFrameworkPaths.LastOrDefault();
         }
 
-        private static IEnumerable<string> GetAvailableFrameworkPaths()
+        private static IEnumerable<string> GetAvailableFrameworkPaths(string path)
         {
-            foreach (string dir in Directory.GetDirectories(RootPath))
+            foreach (string dir in Directory.GetDirectories(path))
             {
                 if (dir.EndsWith("-api", true, System.Globalization.CultureInfo.InvariantCulture))
                 {
