@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.1] - 2020-10-26
+
+### Changed
+- Fix crash on initialization.
+
 ## [0.6.0] - 2020-10-17
 
 ### Added
@@ -104,6 +109,7 @@
 - Support for MacVim on macOS.
 - Support for Sublime Text 3 on macOS.
 
+[0.6.1]: https://github.com/frarees/easyeditor/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/frarees/easyeditor/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/frarees/easyeditor/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/frarees/easyeditor/compare/v0.4.3...v0.5.0

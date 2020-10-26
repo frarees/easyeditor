@@ -55,6 +55,11 @@ namespace EasyEditor
 
         private static void OnAfterAssemblyReload()
         {
+            if (!Registry.Instance)
+            {
+                return;
+            }
+
             if (Registry.Instance.TryGetDiscoveryFromEditorPath(CodeEditor.CurrentEditorInstallation, out Discovery discovery))
             {
                 if (discovery.AutoGenerate)
@@ -71,10 +76,7 @@ namespace EasyEditor
 
         private ExternalCodeEditor()
         {
-            if (Registry.LoadInstance())
-            {
-                Installations = Registry.Instance.GetInstallations();
-            }
+            Installations = Registry.LoadInstance() ? Registry.Instance.GetInstallations() : new CodeEditor.Installation[] { };
         }
 
         public void Initialize(string editorInstallationPath)

@@ -1,12 +1,12 @@
 {
   "name": "com.frarees.easyeditor",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "displayName": "Easy Editor",
   "description": "Support external editors with ease.",
   "unity": "2019.2",
-  "documentationUrl": "https://github.com/frarees/easyeditor/tree/v0.6.0",
-  "changelogUrl": "https://github.com/frarees/easyeditor/blob/v0.6.0/CHANGELOG.md",
-  "licensesUrl": "https://github.com/frarees/easyeditor/blob/v0.6.0/LICENSE.md",
+  "documentationUrl": "https://github.com/frarees/easyeditor/tree/v0.6.1",
+  "changelogUrl": "https://github.com/frarees/easyeditor/blob/v0.6.1/CHANGELOG.md",
+  "licensesUrl": "https://github.com/frarees/easyeditor/blob/v0.6.1/LICENSE.md",
   "keywords": [
     "editor"
   ],
