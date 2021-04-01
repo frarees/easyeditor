@@ -17,34 +17,44 @@ namespace EasyEditor
             public static readonly GUIContent arguments = EditorGUIUtility.TrTextContent("Arguments");
             public static readonly GUIContent reset = EditorGUIUtility.TrTextContent("Reset");
             public static readonly GUIContent generate = EditorGUIUtility.TrTextContent("Generate");
+            public static readonly GUIContent clear = EditorGUIUtility.TrTextContent("Clear", "Remove all .sln and .csproj files");
             public static readonly GUIContent autoGenerate = EditorGUIUtility.TrTextContent("Generate solution and project files", "Forces .sln and .csproj files to be generated and kept in sync.");
 #if !UNITY_2020_2_OR_NEWER 
             public static readonly GUIContent matchCompilerVersion = EditorGUIUtility.TrTextContent("Match compiler version", "When Unity creates or updates .csproj files, it defines LangVersion as 'latest'. This can create inconsistencies with other .NET platforms (e.g. OmniSharp), which could resolve 'latest' as a different version. By matching compiler version, 'latest' will get resolved as " + Preferences.GetLangVersion() + ". ");
 #endif
             public static readonly GUIContent exportFrameworkPathOverride = EditorGUIUtility.TrTextContent("Export FrameworkPathOverride", FrameworkResolver.LastAvailableFrameworkPath != null ? "When invoking the text editor, sets the environment variable FrameworkPathOverride to " + FrameworkResolver.LastAvailableFrameworkPath : string.Empty);
 
-            public static readonly GUIContent syncVsFail = EditorGUIUtility.TrTextContent("Couldn't reflect SyncVS members successfully.");
             public static readonly GUIContent monoInstallationFinderFail = EditorGUIUtility.TrTextContent("Couldn't reflect MonoInstallationFinder members successfully.");
             public static readonly GUIContent discoveryFail = EditorGUIUtility.TrTextContent("Easy Editor couldn't load the discovery.");
         }
 
-        public static readonly ExternalCodeEditor instance;
-        private static IEnumerable<string> DefaultExtensions { get; }
+        public static ExternalCodeEditor Instance { get; private set; }
+
+        private static IEnumerable<string> DefaultExtensions => EditorSettings.projectGenerationBuiltinExtensions
+            .Concat(EditorSettings.projectGenerationUserExtensions)
+            .Concat(new[] { "json", "asmdef", "log" })
+            .Distinct();
 
         public CodeEditor.Installation[] Installations { get; }
 
+        private readonly IGenerator generator = new ProjectGeneration(Directory.GetParent(Application.dataPath).FullName);
+
         static ExternalCodeEditor()
         {
-            DefaultExtensions = EditorSettings.projectGenerationBuiltinExtensions
-                    .Concat(EditorSettings.projectGenerationUserExtensions)
-                    .Concat(new[] { "json", "asmdef", "log" })
-                    .Distinct();
-
-            instance = new ExternalCodeEditor();
-            CodeEditor.Register(instance);
+            EditorApplication.delayCall += RegisterInstance;
 
             AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
             AssemblyReloadEvents.afterAssemblyReload += OnAfterAssemblyReload;
+        }
+
+        private static void RegisterInstance()
+        {
+            Instance = new ExternalCodeEditor();
+
+            if (Instance != null)
+            {
+                CodeEditor.Register(Instance);
+            }
         }
 
         private static bool SupportsExtension(string path)
@@ -64,14 +74,20 @@ namespace EasyEditor
             {
                 if (discovery.AutoGenerate)
                 {
-                    SyncUtil.Sync();
+                    if (CodeEditor.CurrentEditor == Instance)
+                    {
+                        CodeEditor.CurrentEditor.SyncAll();
+                    }
                 }
             }
         }
 
         private static void OnBeforeAssemblyReload()
         {
-            CodeEditor.Unregister(instance);
+            if (Instance != null)
+            {
+                CodeEditor.Unregister(Instance);
+            }
         }
 
         private ExternalCodeEditor()
@@ -85,7 +101,7 @@ namespace EasyEditor
             {
                 if (discovery.AutoGenerate)
                 {
-                    SyncUtil.Sync();
+                    generator.Sync();
                 }
             }
         }
@@ -99,7 +115,7 @@ namespace EasyEditor
                 return;
             }
 
-            EditorGUI.BeginDisabledGroup(!Preferences.IsActive || SyncUtil.IsReloading || EditorApplication.isCompiling || EditorApplication.isUpdating);
+            EditorGUI.BeginDisabledGroup(!Preferences.IsActive || EditorApplication.isCompiling || EditorApplication.isUpdating);
 
             if (!string.IsNullOrEmpty(discovery.notes))
             {
@@ -121,8 +137,6 @@ namespace EasyEditor
             }
             EditorGUILayout.EndHorizontal();
 
-            EditorGUI.BeginDisabledGroup(!SyncVS.IsValid);
-
             EditorGUILayout.BeginHorizontal();
 
             EditorGUI.BeginChangeCheck();
@@ -132,13 +146,35 @@ namespace EasyEditor
                 discovery.AutoGenerate = autoGenerate;
                 if (autoGenerate)
                 {
-                    SyncUtil.Sync();
+                    generator.Sync();
                 }
             }
 
-            if (GUILayout.Button(Properties.generate, EditorStyles.miniButton, GUILayout.Width(64f)))
+            var flags = generator.AssemblyNameProvider.ProjectGenerationFlag;
+            EditorGUI.BeginChangeCheck();
+            var nflags = (ProjectGenerationFlag)EditorGUILayout.EnumFlagsField(flags);
+            if (EditorGUI.EndChangeCheck())
             {
-                SyncUtil.Sync();
+                generator.AssemblyNameProvider.ToggleProjectGeneration(nflags ^ flags);
+            }
+
+            if (GUILayout.Button(Properties.generate, EditorStyles.miniButtonLeft, GUILayout.Width(64f)))
+            {
+                generator.Sync();
+            }
+
+            if (GUILayout.Button(Properties.clear, EditorStyles.miniButtonRight, GUILayout.Width(40f)))
+            {
+                var di = new DirectoryInfo(Preferences.projectPath);
+                foreach (var fi in di.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly))
+                {
+                    fi.Delete();
+                }
+
+                foreach (var fi in di.EnumerateFiles("*.sln", SearchOption.TopDirectoryOnly))
+                {
+                    fi.Delete();
+                }
             }
 
             EditorGUILayout.EndHorizontal();
@@ -151,16 +187,10 @@ namespace EasyEditor
                 discovery.MatchCompilerVersion = matchCompilerVersion;
                 if (matchCompilerVersion)
                 {
-                    SyncUtil.Sync();
+                    generator.Sync();
                 }
             }
 #endif
-            EditorGUI.EndDisabledGroup();
-
-            if (!SyncVS.IsValid)
-            {
-                EditorGUILayout.HelpBox(Properties.syncVsFail.text, MessageType.Warning);
-            }
 
             EditorGUI.BeginDisabledGroup(!MonoInstallationFinder.IsValid || !discovery.inheritsEnvironmentVariables);
 
@@ -259,7 +289,8 @@ namespace EasyEditor
             {
                 if (discovery.AutoGenerate)
                 {
-                    SyncUtil.Sync();
+                    AssetDatabase.Refresh();
+                    generator.Sync();
                 }
             }
         }
@@ -270,7 +301,7 @@ namespace EasyEditor
             {
                 if (discovery.AutoGenerate)
                 {
-                    SyncUtil.Sync();
+                    _ = generator.SyncIfNeeded(addedFiles.Union(deletedFiles).Union(movedFiles).Union(movedFromFiles).ToList(), importedFiles);
                 }
             }
         }

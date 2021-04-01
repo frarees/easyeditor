@@ -1,5 +1,6 @@
 {
     "name": "EasyEditor",
+    "rootNamespace": "",
     "references": [
         "GUID:734e6689aeb5b4d668aa7c78bcc0910f"
     ],

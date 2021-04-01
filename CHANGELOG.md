@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0] - 2021-04-01
+
+### Added
+- Ability to specify which projects get generated.
+- Workaround for RoslynAnalysisRunner issues.
+
+### Changed
+- Fix registering editor on initial startup.
+- Fix opening files custom extension (set in EditorSettings.projectGenerationUserExtensions).
+
 ## [0.6.1] - 2020-10-26
 
 ### Changed
