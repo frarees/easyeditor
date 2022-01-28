@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0] - 2022-01-28
+
+### Added
+- Matching compiler version up to Unity 2022.1 (C# 9.0).
+
+### Changed
+- Updated Roslyn analyzers to [1.12.0](https://github.com/microsoft/Microsoft.Unity.Analyzers/releases/tag/1.12.0).
+
+### Removed
+- Postprocessor class (.csproj postprocessor).
+
+### ProjectGenerator (matching [1.2.4](https://github.com/Unity-Technologies/com.unity.ide.vscode/tree/1.2.4/Packages/com.unity.ide.vscode/Editor/ProjectGeneration))
+- Allow for per assembly roslyn analyzers
+- Optimize package info look up performance. Reducing project generation time
+- Use absolute path for Roslyn analyzers
+- Always sync on asset updates
+
 ## [0.7.0] - 2021-04-01
 
 ### Added
@@ -119,6 +136,8 @@
 - Support for MacVim on macOS.
 - Support for Sublime Text 3 on macOS.
 
+[0.8.0]: https://github.com/frarees/easyeditor/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/frarees/easyeditor/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/frarees/easyeditor/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/frarees/easyeditor/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/frarees/easyeditor/compare/v0.5.0...v0.5.1

@@ -19,9 +19,7 @@ namespace EasyEditor
             public static readonly GUIContent generate = EditorGUIUtility.TrTextContent("Generate");
             public static readonly GUIContent clear = EditorGUIUtility.TrTextContent("Clear", "Remove all .sln and .csproj files");
             public static readonly GUIContent autoGenerate = EditorGUIUtility.TrTextContent("Generate solution and project files", "Forces .sln and .csproj files to be generated and kept in sync.");
-#if !UNITY_2020_2_OR_NEWER 
             public static readonly GUIContent matchCompilerVersion = EditorGUIUtility.TrTextContent("Match compiler version", "When Unity creates or updates .csproj files, it defines LangVersion as 'latest'. This can create inconsistencies with other .NET platforms (e.g. OmniSharp), which could resolve 'latest' as a different version. By matching compiler version, 'latest' will get resolved as " + Preferences.GetLangVersion() + ". ");
-#endif
             public static readonly GUIContent exportFrameworkPathOverride = EditorGUIUtility.TrTextContent("Export FrameworkPathOverride", FrameworkResolver.LastAvailableFrameworkPath != null ? "When invoking the text editor, sets the environment variable FrameworkPathOverride to " + FrameworkResolver.LastAvailableFrameworkPath : string.Empty);
 
             public static readonly GUIContent monoInstallationFinderFail = EditorGUIUtility.TrTextContent("Couldn't reflect MonoInstallationFinder members successfully.");
@@ -122,7 +120,7 @@ namespace EasyEditor
                 EditorGUILayout.HelpBox(discovery.notes, MessageType.Info);
             }
 
-            EditorGUILayout.BeginHorizontal();
+            _ = EditorGUILayout.BeginHorizontal();
             EditorGUI.BeginChangeCheck();
             string arguments = EditorGUILayout.TextField(Properties.arguments, discovery.Arguments);
             if (EditorGUI.EndChangeCheck())
@@ -137,7 +135,7 @@ namespace EasyEditor
             }
             EditorGUILayout.EndHorizontal();
 
-            EditorGUILayout.BeginHorizontal();
+            _ = EditorGUILayout.BeginHorizontal();
 
             EditorGUI.BeginChangeCheck();
             bool autoGenerate = EditorGUILayout.Toggle(Properties.autoGenerate, discovery.AutoGenerate);
@@ -179,7 +177,6 @@ namespace EasyEditor
 
             EditorGUILayout.EndHorizontal();
 
-#if !UNITY_2020_2_OR_NEWER
             EditorGUI.BeginChangeCheck();
             bool matchCompilerVersion = EditorGUILayout.Toggle(Properties.matchCompilerVersion, discovery.MatchCompilerVersion);
             if (EditorGUI.EndChangeCheck())
@@ -190,7 +187,6 @@ namespace EasyEditor
                     generator.Sync();
                 }
             }
-#endif
 
             EditorGUI.BeginDisabledGroup(!MonoInstallationFinder.IsValid || !discovery.inheritsEnvironmentVariables);
 
@@ -289,6 +285,7 @@ namespace EasyEditor
             {
                 if (discovery.AutoGenerate)
                 {
+                    (generator.AssemblyNameProvider as IPackageInfoCache)?.ResetPackageInfoCache();
                     AssetDatabase.Refresh();
                     generator.Sync();
                 }
@@ -301,6 +298,7 @@ namespace EasyEditor
             {
                 if (discovery.AutoGenerate)
                 {
+                    (generator.AssemblyNameProvider as IPackageInfoCache)?.ResetPackageInfoCache();
                     _ = generator.SyncIfNeeded(addedFiles.Union(deletedFiles).Union(movedFiles).Union(movedFromFiles).ToList(), importedFiles);
                 }
             }

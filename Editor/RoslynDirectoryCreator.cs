@@ -10,7 +10,10 @@ namespace EasyEditor
     [InitializeOnLoad]
     internal static class RoslynDirectoryCreator
     {
-        static RoslynDirectoryCreator() => Application.logMessageReceivedThreaded += OnLogMessageReceived;
+        static RoslynDirectoryCreator()
+        {
+            Application.logMessageReceivedThreaded += OnLogMessageReceived;
+        }
 
         private static void OnLogMessageReceived(string message, string stackTrace, LogType logType)
         {

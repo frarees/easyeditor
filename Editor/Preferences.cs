@@ -19,12 +19,16 @@ namespace EasyEditor
 
         public static bool IsActive => CodeEditor.CurrentEditor is ExternalCodeEditor;
 
-#if !UNITY_2020_2_OR_NEWER
         public static string GetLangVersion()
         {
+#if UNITY_2021_2_OR_NEWER
+            return "9.0";
+#elif UNITY_2020_2_OR_NEWER
+            return "8.0";
+#else
             return "7.3";
-        }
 #endif
+        }
     }
 }
 

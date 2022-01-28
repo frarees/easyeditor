@@ -33,13 +33,11 @@ namespace EasyEditor
             set => EditorPrefs.SetBool($"EasyEditor.{name}.ExportFrameworkPathOverride", value && !requiresNativeOpen && inheritsEnvironmentVariables);
         }
 
-#if !UNITY_2020_2_OR_NEWER
         public bool MatchCompilerVersion
         {
             get => EditorPrefs.GetBool($"EasyEditor.{name}.MatchCompilerVersion", true);
             set => EditorPrefs.SetBool($"EasyEditor.{name}.MatchCompilerVersion", value);
         }
-#endif
 
         public string Arguments
         {
