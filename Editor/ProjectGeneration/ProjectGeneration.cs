@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Security.Cryptography;
+using SR = System.Reflection;
 using System.Text;
 using UnityEditor;
 using UnityEditor.Compilation;
@@ -40,7 +41,6 @@ namespace EasyEditor
     {
         ""**/.DS_Store"":true,
         ""**/.git"":true,
-        ""**/.gitignore"":true,
         ""**/.gitmodules"":true,
         ""**/*.booproj"":true,
         ""**/*.pidb"":true,
@@ -115,7 +115,8 @@ namespace EasyEditor
 
         static readonly string[] k_ReimportSyncExtensions = { ".dll", ".asmdef" };
 
-        string[] m_ProjectSupportedExtensions = new string[0];
+        string[] m_ProjectSupportedExtensions = Array.Empty<string>();
+        const string k_TargetLanguageVersion = "latest";
         public string ProjectDirectory { get; }
         IAssemblyNameProvider IGenerator.AssemblyNameProvider => m_AssemblyNameProvider;
 
@@ -143,8 +144,6 @@ namespace EasyEditor
         const string k_ProductVersion = "10.0.20506";
         const string k_BaseDirectory = ".";
         const string k_TargetFrameworkVersion = "v4.7.1";
-        const string k_TargetLanguageVersion = "latest";
-
         public ProjectGeneration(string tempDirectory)
             : this(tempDirectory, new AssemblyNameProvider(), new FileIOProvider(), new GUIDProvider()) { }
 
@@ -212,10 +211,54 @@ namespace EasyEditor
             return k_ReimportSyncExtensions.Contains(new FileInfo(asset).Extension);
         }
 
+        private static IEnumerable<SR.MethodInfo> GetPostProcessorCallbacks(string name)
+        {
+            return TypeCache
+                .GetTypesDerivedFrom<AssetPostprocessor>()
+                .Select(t => t.GetMethod(name, SR.BindingFlags.Public | SR.BindingFlags.NonPublic | SR.BindingFlags.Static))
+                .Where(m => m != null);
+        }
+
+        static void OnGeneratedCSProjectFiles()
+        {
+            foreach (var method in GetPostProcessorCallbacks(nameof(OnGeneratedCSProjectFiles)))
+            {
+                method.Invoke(null, Array.Empty<object>());
+            }
+        }
+
+        private static string InvokeAssetPostProcessorGenerationCallbacks(string name, string path, string content)
+        {
+            foreach (var method in GetPostProcessorCallbacks(name))
+            {
+                var args = new[] { path, content };
+                var returnValue = method.Invoke(null, args);
+                if (method.ReturnType == typeof(string))
+                {
+                    // We want to chain content update between invocations
+                    content = (string)returnValue;
+                }
+            }
+
+            return content;
+        }
+
+        private static string OnGeneratedCSProject(string path, string content)
+        {
+            return InvokeAssetPostProcessorGenerationCallbacks(nameof(OnGeneratedCSProject), path, content);
+        }
+
+        private static string OnGeneratedSlnSolution(string path, string content)
+        {
+            return InvokeAssetPostProcessorGenerationCallbacks(nameof(OnGeneratedSlnSolution), path, content);
+        }
+
         public void Sync()
         {
             SetupProjectSupportedExtensions();
             GenerateAndWriteSolutionAndProjects();
+
+            OnGeneratedCSProjectFiles();
         }
 
         public bool SolutionExists()
@@ -363,7 +406,7 @@ namespace EasyEditor
                         stringBuilders[assemblyName] = projectBuilder;
                     }
 
-                    projectBuilder.Append("     <None Include=\"").Append(EscapedRelativePathFor(asset)).Append("\" />").Append(k_WindowsNewline);
+                    projectBuilder.Append("     <None Include=\"").Append(m_FileIOProvider.EscapedRelativePathFor(asset, ProjectDirectory)).Append("\" />").Append(k_WindowsNewline);
                 }
             }
 
@@ -385,24 +428,33 @@ namespace EasyEditor
 
         void SyncProjectFileIfNotChanged(string path, string newContents)
         {
+            if (Path.GetExtension(path) == ".csproj")
+            {
+                newContents = OnGeneratedCSProject(path, newContents);
+            }
+
             SyncFileIfNotChanged(path, newContents);
         }
 
         void SyncSolutionFileIfNotChanged(string path, string newContents)
         {
+            newContents = OnGeneratedSlnSolution(path, newContents);
+
             SyncFileIfNotChanged(path, newContents);
         }
 
         void SyncFileIfNotChanged(string filename, string newContents)
         {
-            if (m_FileIOProvider.Exists(filename))
+            try
             {
-                var currentContents = m_FileIOProvider.ReadAllText(filename);
-
-                if (currentContents == newContents)
+                if (m_FileIOProvider.Exists(filename) && newContents == m_FileIOProvider.ReadAllText(filename))
                 {
                     return;
                 }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
             }
 
             m_FileIOProvider.WriteAllText(filename, newContents);
@@ -419,19 +471,8 @@ namespace EasyEditor
 
             foreach (string file in assembly.sourceFiles)
             {
-                if (!HasValidExtension(file))
-                    continue;
-
-                var extension = Path.GetExtension(file).ToLower();
-                var fullFile = EscapedRelativePathFor(file);
-                if (".dll" != extension)
-                {
-                    projectBuilder.Append("     <Compile Include=\"").Append(fullFile).Append("\" />").Append(k_WindowsNewline);
-                }
-                else
-                {
-                    references.Add(fullFile);
-                }
+                var fullFile = m_FileIOProvider.EscapedRelativePathFor(file, ProjectDirectory);
+                projectBuilder.Append("     <Compile Include=\"").Append(fullFile).Append("\" />").Append(k_WindowsNewline);
             }
 
             // Append additional non-script files that should be included in project generation.
@@ -493,7 +534,7 @@ namespace EasyEditor
             return Path.Combine(ProjectDirectory, $"{m_ProjectName}.sln");
         }
 
-        void ProjectHeader(
+        private void ProjectHeader(
             Assembly assembly,
             List<ResponseFileData> responseFilesData,
             StringBuilder builder
@@ -505,27 +546,44 @@ namespace EasyEditor
                 ProjectGuid(assembly.name),
                 assembly.name,
                 string.Join(";", new[] { "DEBUG", "TRACE" }.Concat(assembly.defines).Concat(responseFilesData.SelectMany(x => x.Defines)).Concat(EditorUserBuildSettings.activeScriptCompilationDefines).Distinct().ToArray()),
+                GenerateLangVersion(otherArguments["langversion"], assembly),
                 assembly.compilerOptions.AllowUnsafeCode | responseFilesData.Any(x => x.Unsafe),
-                CreateAnalyzerBlock(otherArguments, assembly));
+                GenerateAnalyserItemGroup(RetrieveRoslynAnalyzers(assembly, otherArguments)),
+                GenerateRoslynAnalyzerRulesetPath(assembly, otherArguments)
+            );
         }
 
-        string CreateAnalyzerBlock(ILookup<string, string> otherArguments, Assembly assembly)
+        private static string GenerateLangVersion(IEnumerable<string> langVersionList, Assembly assembly)
         {
-            return GenerateAnalyserItemGroup(otherArguments["analyzer"].Concat(otherArguments["a"])
-                .SelectMany(x => x.Split(';'))
+            var langVersion = langVersionList.FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(langVersion))
+                return langVersion;
 #if UNITY_2020_2_OR_NEWER
-                .Concat(assembly.compilerOptions.RoslynAnalyzerDllPaths)
+            return assembly.compilerOptions.LanguageVersion;
 #else
-                .Concat(m_AssemblyNameProvider.GetRoslynAnalyzerPaths())
+            return k_TargetLanguageVersion;
 #endif
-                .Distinct()
-                .Select(path => MakeAbsolutePath(path, ProjectDirectory).NormalizePath())
-                .ToArray());
         }
 
-        private static string MakeAbsolutePath(string path, string projectDirectory)
+        private static string GenerateRoslynAnalyzerRulesetPath(Assembly assembly, ILookup<string, string> otherResponseFilesData)
         {
-            return Path.IsPathRooted(path) ? path : Path.Combine(projectDirectory, path);
+#if UNITY_2020_2_OR_NEWER
+            return GenerateAnalyserRuleSet(otherResponseFilesData["ruleset"].Append(assembly.compilerOptions.RoslynAnalyzerRulesetPath).Where(a => !string.IsNullOrEmpty(a)).Distinct().Select(x => MakeAbsolutePath(x).NormalizePath()).ToArray());
+#else
+            return GenerateAnalyserRuleSet(otherResponseFilesData["ruleset"].Distinct().Select(x => MakeAbsolutePath(x).NormalizePath()).ToArray());
+#endif
+        }
+
+        private static string GenerateAnalyserRuleSet(string[] paths)
+        {
+            return paths.Length == 0
+                ? string.Empty
+                : $"{Environment.NewLine}{string.Join(Environment.NewLine, paths.Select(a => $"    <CodeAnalysisRuleSet>{a}</CodeAnalysisRuleSet>"))}";
+        }
+
+        private static string MakeAbsolutePath(string path)
+        {
+            return Path.IsPathRooted(path) ? path : Path.GetFullPath(path);
         }
 
         private static ILookup<string, string> GetOtherArgumentsFromResponseFilesData(List<ResponseFileData> responseFilesData)
@@ -553,21 +611,46 @@ namespace EasyEditor
             return paths;
         }
 
-        private static string GenerateAnalyserItemGroup(string[] paths)
+        string[] RetrieveRoslynAnalyzers(Assembly assembly, ILookup<string, string> otherArguments)
         {
-            //    <ItemGroup>
-            //        <Analyzer Include="..\packages\Comments_analyser.1.0.6626.21356\analyzers\dotnet\cs\Comments_analyser.dll" />
-            //        <Analyzer Include="..\packages\UnityEngineAnalyzer.1.0.0.0\analyzers\dotnet\cs\UnityEngineAnalyzer.dll" />
-            //    </ItemGroup>
-            if (!paths.Any())
+#if UNITY_2020_2_OR_NEWER
+            return otherArguments["analyzer"].Concat(otherArguments["a"])
+                .SelectMany(x=>x.Split(';'))
+#if !ROSLYN_ANALYZER_FIX
+                .Concat(m_AssemblyNameProvider.GetRoslynAnalyzerPaths())
+#else
+        .Concat(assembly.compilerOptions.RoslynAnalyzerDllPaths)
+#endif
+                .Select(MakeAbsolutePath)
+                .Distinct()
+                .ToArray();
+#else
+      return otherArguments["analyzer"].Concat(otherArguments["a"])
+        .SelectMany(x=>x.Split(';'))
+        .Distinct()
+        .Select(MakeAbsolutePath)
+        .ToArray();
+#endif
+        }
+
+        static string GenerateAnalyserItemGroup(string[] paths)
+        {
+            //   <ItemGroup>
+            //      <Analyzer Include="..\packages\Comments_analyser.1.0.6626.21356\analyzers\dotnet\cs\Comments_analyser.dll" />
+            //      <Analyzer Include="..\packages\UnityEngineAnalyzer.1.0.0.0\analyzers\dotnet\cs\UnityEngineAnalyzer.dll" />
+            //  </ItemGroup>
+            if (paths.Length == 0)
+            {
                 return string.Empty;
+            }
 
             var analyserBuilder = new StringBuilder();
             analyserBuilder.Append("  <ItemGroup>").Append(k_WindowsNewline);
             foreach (var path in paths)
             {
-                analyserBuilder.Append($"    <Analyzer Include=\"{path}\" />").Append(k_WindowsNewline);
+                analyserBuilder.Append($"    <Analyzer Include=\"{path.NormalizePath()}\" />").Append(k_WindowsNewline);
             }
+
             analyserBuilder.Append("  </ItemGroup>").Append(k_WindowsNewline);
             return analyserBuilder.ToString();
         }
@@ -582,22 +665,25 @@ namespace EasyEditor
             return string.Join("\r\n", @"  </ItemGroup>", @"  <Import Project=""$(MSBuildToolsPath)\Microsoft.CSharp.targets"" />", @"  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.", @"       Other similar extension points exist, see Microsoft.Common.targets.", @"  <Target Name=""BeforeBuild"">", @"  </Target>", @"  <Target Name=""AfterBuild"">", @"  </Target>", @"  -->", @"</Project>", @"");
         }
 
-        static string GetTargetLanguageVersion()
+        static bool TryGetTargetLangVersionOverride(out string langVersion)
         {
+            langVersion = k_TargetLanguageVersion;
+
             if (!Preferences.IsActive)
             {
-                return k_TargetLanguageVersion;
+                return false;
             }
 
             if (Registry.Instance.TryGetDiscoveryFromEditorPath(Unity.CodeEditor.CodeEditor.CurrentEditorInstallation, out Discovery discovery))
             {
-                if (discovery.MatchCompilerVersion)
+                if (discovery.OverrideLangVersion)
                 {
-                    return Preferences.GetLangVersion();
+                    langVersion = discovery.LangVersion;
+                    return true;
                 }
             }
 
-            return k_TargetLanguageVersion;
+            return false;
         }
 
         static void GetProjectHeaderTemplate(
@@ -605,8 +691,10 @@ namespace EasyEditor
             string assemblyGUID,
             string assemblyName,
             string defines,
+            string langVersion,
             bool allowUnsafe,
-            string analyzerBlock
+            string analyzerBlock,
+            string rulesetBlock
         )
         {
             string cscToolPath = Path.Combine(EditorApplication.applicationContentsPath, "Tools", "RoslynScripts");
@@ -617,7 +705,12 @@ namespace EasyEditor
             builder.Append(@"<?xml version=""1.0"" encoding=""utf-8""?>").Append(k_WindowsNewline);
             builder.Append(@"<Project ToolsVersion=""").Append(k_ToolsVersion).Append(@""" DefaultTargets=""Build"" xmlns=""").Append(MSBuildNamespaceUri).Append(@""">").Append(k_WindowsNewline);
             builder.Append(@"  <PropertyGroup>").Append(k_WindowsNewline);
-            builder.Append(@"    <LangVersion>").Append(GetTargetLanguageVersion()).Append("</LangVersion>").Append(k_WindowsNewline);
+            //builder.Append(@"    <LangVersion>").Append(GetTargetLanguageVersion()).Append("</LangVersion>").Append(k_WindowsNewline);
+            if (TryGetTargetLangVersionOverride(out string langVersionOverride))
+            {
+                langVersion = langVersionOverride;
+            }
+            builder.Append(@"    <LangVersion>").Append(langVersion).Append("</LangVersion>").Append(k_WindowsNewline);
             builder.Append(@"    <CscToolPath>").Append(cscToolPath).Append("</CscToolPath>").Append(k_WindowsNewline);
             builder.Append(@"    <CscToolExe>").Append(cscToolExe).Append("</CscToolExe>").Append(k_WindowsNewline);
             builder.Append(@"  </PropertyGroup>").Append(k_WindowsNewline);
@@ -652,6 +745,7 @@ namespace EasyEditor
             builder.Append(@"    <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>").Append(k_WindowsNewline);
             builder.Append(@"    <ImplicitlyExpandNETStandardFacades>false</ImplicitlyExpandNETStandardFacades>").Append(k_WindowsNewline);
             builder.Append(@"    <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>").Append(k_WindowsNewline);
+            builder.Append(rulesetBlock);
             builder.Append(@"  </PropertyGroup>").Append(k_WindowsNewline);
             builder.Append(analyzerBlock);
             builder.Append(@"  <ItemGroup>").Append(k_WindowsNewline);
@@ -703,24 +797,6 @@ namespace EasyEditor
             return string.Format(
                 m_SolutionProjectConfigurationTemplate,
                 projectGuid);
-        }
-
-        string EscapedRelativePathFor(string file)
-        {
-            var projectDir = ProjectDirectory.NormalizePath();
-            file = file.NormalizePath();
-            var path = SkipPathPrefix(file, projectDir);
-
-            var packageInfo = m_AssemblyNameProvider.FindForAssetPath(path.NormalizePath());
-            if (packageInfo != null)
-            {
-                // We have to normalize the path, because the PackageManagerRemapper assumes
-                // dir seperators will be os specific.
-                var absolutePath = Path.GetFullPath(path).NormalizePath();
-                path = SkipPathPrefix(absolutePath, projectDir);
-            }
-
-            return SecurityElement.Escape(path);
         }
 
         static string SkipPathPrefix(string path, string prefix)

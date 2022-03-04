@@ -33,10 +33,16 @@ namespace EasyEditor
             set => EditorPrefs.SetBool($"EasyEditor.{name}.ExportFrameworkPathOverride", value && !requiresNativeOpen && inheritsEnvironmentVariables);
         }
 
-        public bool MatchCompilerVersion
+        public bool OverrideLangVersion
         {
-            get => EditorPrefs.GetBool($"EasyEditor.{name}.MatchCompilerVersion", true);
-            set => EditorPrefs.SetBool($"EasyEditor.{name}.MatchCompilerVersion", value);
+            get => EditorPrefs.GetBool($"EasyEditor.{name}.OverrideLangVersion", false);
+            set => EditorPrefs.SetBool($"EasyEditor.{name}.OverrideLangVersion", value);
+        }
+
+        public string LangVersion
+        {
+            get => EditorPrefs.GetString($"EasyEditor.{name}.LangVersion", "7.3");
+            set => EditorPrefs.SetString($"EasyEditor.{name}.LangVersion", value);
         }
 
         public string Arguments

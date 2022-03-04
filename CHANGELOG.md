@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.1] - 2022-03-04
+
+### Added
+- Override [LangVersion](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/configure-language-version).
+
+### Removed
+- Match compiler version flag.
+
+### ProjectGenerator (matching [1.2.5](https://github.com/Unity-Technologies/com.unity.ide.vscode/tree/1.2.5/Packages/com.unity.ide.vscode/Editor/ProjectGeneration))
+- Introduce OnGeneratedCSProjectFiles, OnGeneratedCSProject and OnGeneratedSlnSolution callbacks.
+- Always use forward slash in source paths
+- Analyzers use absolute paths
+- Ruleset files for roslyn analyzers
+- Extra snap search paths on Ubuntu
+- Specific c# language version for specific unity versions
+- No longer hide .gitignore in file explorer
+
 ## [0.8.0] - 2022-01-28
 
 ### Added
@@ -136,6 +153,7 @@
 - Support for MacVim on macOS.
 - Support for Sublime Text 3 on macOS.
 
+[0.8.1]: https://github.com/frarees/easyeditor/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/frarees/easyeditor/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/frarees/easyeditor/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/frarees/easyeditor/compare/v0.6.0...v0.6.1

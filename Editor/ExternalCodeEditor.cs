@@ -19,7 +19,7 @@ namespace EasyEditor
             public static readonly GUIContent generate = EditorGUIUtility.TrTextContent("Generate");
             public static readonly GUIContent clear = EditorGUIUtility.TrTextContent("Clear", "Remove all .sln and .csproj files");
             public static readonly GUIContent autoGenerate = EditorGUIUtility.TrTextContent("Generate solution and project files", "Forces .sln and .csproj files to be generated and kept in sync.");
-            public static readonly GUIContent matchCompilerVersion = EditorGUIUtility.TrTextContent("Match compiler version", "When Unity creates or updates .csproj files, it defines LangVersion as 'latest'. This can create inconsistencies with other .NET platforms (e.g. OmniSharp), which could resolve 'latest' as a different version. By matching compiler version, 'latest' will get resolved as " + Preferences.GetLangVersion() + ". ");
+            public static readonly GUIContent overrideLangVersion = EditorGUIUtility.TrTextContent("Override LangVersion", "Generate .csproj files using the specified LangVersion. Examples: 7.3, 8.0, 9.0...");
             public static readonly GUIContent exportFrameworkPathOverride = EditorGUIUtility.TrTextContent("Export FrameworkPathOverride", FrameworkResolver.LastAvailableFrameworkPath != null ? "When invoking the text editor, sets the environment variable FrameworkPathOverride to " + FrameworkResolver.LastAvailableFrameworkPath : string.Empty);
 
             public static readonly GUIContent monoInstallationFinderFail = EditorGUIUtility.TrTextContent("Couldn't reflect MonoInstallationFinder members successfully.");
@@ -178,15 +178,22 @@ namespace EasyEditor
             EditorGUILayout.EndHorizontal();
 
             EditorGUI.BeginChangeCheck();
-            bool matchCompilerVersion = EditorGUILayout.Toggle(Properties.matchCompilerVersion, discovery.MatchCompilerVersion);
+            bool overrideLangVersion = EditorGUILayout.Toggle(Properties.overrideLangVersion, discovery.OverrideLangVersion);
             if (EditorGUI.EndChangeCheck())
             {
-                discovery.MatchCompilerVersion = matchCompilerVersion;
-                if (matchCompilerVersion)
-                {
-                    generator.Sync();
-                }
+                discovery.OverrideLangVersion = overrideLangVersion;
             }
+
+            EditorGUI.indentLevel++;
+            EditorGUI.BeginDisabledGroup(!discovery.OverrideLangVersion);
+            EditorGUI.BeginChangeCheck();
+            string langVersion = EditorGUILayout.TextField(discovery.LangVersion);
+            if (EditorGUI.EndChangeCheck())
+            {
+                discovery.LangVersion = langVersion;
+            }
+            EditorGUI.EndDisabledGroup();
+            EditorGUI.indentLevel--;
 
             EditorGUI.BeginDisabledGroup(!MonoInstallationFinder.IsValid || !discovery.inheritsEnvironmentVariables);
 
