@@ -711,8 +711,10 @@ namespace EasyEditor
                 langVersion = langVersionOverride;
             }
             builder.Append(@"    <LangVersion>").Append(langVersion).Append("</LangVersion>").Append(k_WindowsNewline);
+#if EASYEDITOR_INCLUDE_CSC
             builder.Append(@"    <CscToolPath>").Append(cscToolPath).Append("</CscToolPath>").Append(k_WindowsNewline);
             builder.Append(@"    <CscToolExe>").Append(cscToolExe).Append("</CscToolExe>").Append(k_WindowsNewline);
+#endif
             builder.Append(@"  </PropertyGroup>").Append(k_WindowsNewline);
             builder.Append(@"  <PropertyGroup>").Append(k_WindowsNewline);
             builder.Append(@"    <Configuration Condition="" '$(Configuration)' == '' "">Debug</Configuration>").Append(k_WindowsNewline);

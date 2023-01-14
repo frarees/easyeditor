@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.2] - 2023-01-14
+### Added
+- Neovide support (Windows).
+- gVim 9.0 support (Windows 64-bit).
+
+### Changed
+- Don't define csc executable by default (can use `EASYEDITOR_INCLUDE_CSC`).
+
 ## [0.8.1] - 2022-03-04
 
 ### Added
@@ -153,6 +161,7 @@
 - Support for MacVim on macOS.
 - Support for Sublime Text 3 on macOS.
 
+[0.8.2]: https://github.com/frarees/easyeditor/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/frarees/easyeditor/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/frarees/easyeditor/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/frarees/easyeditor/compare/v0.6.1...v0.7.0

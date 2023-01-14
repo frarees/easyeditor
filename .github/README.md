@@ -44,12 +44,13 @@ Select your favourite [external script editor](https://docs.unity3d.com/Manual/P
 | :------------: | :-----: | :---: | :---: |
 | MacVim         |         | ✅    |       |
 | VimR           |         | ✅    |       |
+| Neovide        | ✅      |       |       |
 | gVim           | ✅      |       |       |
 | Sublime Text 3 | ✅      | ✅    |       |
 | CotEditor      |         | ✅    |       |
 | BBEdit         |         | ✅    |       |
 
-_gVim versions 8.1 and 8.2._
+_gVim versions 8.1, 8.2 and 9.0 (64-bit)._
 
 Is there an editor you miss on this list? [Ask for it](https://github.com/frarees/easyeditor/issues/new?assignees=frarees&labels=enhancement&template=feature_request.md&title=) or [contribute](CONTRIBUTING.md) your implementation.
 

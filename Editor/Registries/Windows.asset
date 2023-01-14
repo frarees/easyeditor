@@ -18,8 +18,18 @@ MonoBehaviour:
     paths:
     - $(ProgramFiles(x86))\Vim\vim82
     - $(ProgramFiles(x86))\Vim\vim81
+    - $(ProgramFiles)\Vim\vim90
     defaultArguments: --servername $(ProjectName) --remote-silent +$(Line) $(File)
     inheritsEnvironmentVariables: 1
+    requiresNativeOpen: 0
+    notes: 
+  - name: Neovide
+    executable: neovide.exe
+    paths:
+    - $(ProgramFiles)\Neovide
+    defaultArguments: $(File)
+    inheritsEnvironmentVariables: 1
+    requiresNativeOpen: 0
     notes: 
   - name: Sublime Text
     executable: subl.exe
@@ -27,4 +37,5 @@ MonoBehaviour:
     - $(ProgramFiles)\Sublime Text 3
     defaultArguments: $(File):$(Line):$(Column)
     inheritsEnvironmentVariables: 0
+    requiresNativeOpen: 0
     notes: 
