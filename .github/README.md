@@ -49,6 +49,7 @@ Select your favourite [external script editor](https://docs.unity3d.com/Manual/P
 | Sublime Text 3 | ✅      | ✅    |       |
 | CotEditor      |         | ✅    |       |
 | BBEdit         |         | ✅    |       |
+| Emacs          |         | ✅    | ✅    |
 
 _gVim versions 8.1, 8.2 and 9.0 (64-bit)._
 
