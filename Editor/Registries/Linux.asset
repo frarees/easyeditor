@@ -11,5 +11,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b80d555e03e8140488210516c466456f, type: 3}
   m_Name: Linux
-  m_EditorClassIdentifier: 
-  discoveries: []
+  m_EditorClassIdentifier:
+  discoveries:
+  - name: Emacs
+    executable: emacsclient
+    paths:
+    -
+    defaultArguments: --alternate-editor="" --no-wait -c +$(Line):$(Column) $(File)
+    inheritsEnvironmentVariables: 1
+    requiresNativeOpen: 0
+    notes:
