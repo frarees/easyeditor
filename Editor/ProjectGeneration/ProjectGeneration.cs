@@ -651,6 +651,8 @@ namespace EasyEditor
                 analyserBuilder.Append($"    <Analyzer Include=\"{path.NormalizePath()}\" />").Append(k_WindowsNewline);
             }
 
+            analyserBuilder.Append($"    <Analyzer Include=\"{Path.GetFullPath("Packages/com.frarees.easyeditor/Editor/Analyzers/Microsoft.Unity.Analyzers.dll")}\" />").Append(k_WindowsNewline);
+
             analyserBuilder.Append("  </ItemGroup>").Append(k_WindowsNewline);
             return analyserBuilder.ToString();
         }
@@ -705,6 +707,7 @@ namespace EasyEditor
             builder.Append(@"<?xml version=""1.0"" encoding=""utf-8""?>").Append(k_WindowsNewline);
             builder.Append(@"<Project ToolsVersion=""").Append(k_ToolsVersion).Append(@""" DefaultTargets=""Build"" xmlns=""").Append(MSBuildNamespaceUri).Append(@""">").Append(k_WindowsNewline);
             builder.Append(@"  <PropertyGroup>").Append(k_WindowsNewline);
+            builder.Append(@"    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\").Append(assemblyName).Append(".xml</DocumentationFile>").Append(k_WindowsNewline);
             //builder.Append(@"    <LangVersion>").Append(GetTargetLanguageVersion()).Append("</LangVersion>").Append(k_WindowsNewline);
             if (TryGetTargetLangVersionOverride(out string langVersionOverride))
             {
@@ -729,6 +732,7 @@ namespace EasyEditor
             builder.Append(@"    <TargetFrameworkVersion>").Append(k_TargetFrameworkVersion).Append("</TargetFrameworkVersion>").Append(k_WindowsNewline);
             builder.Append(@"    <FileAlignment>512</FileAlignment>").Append(k_WindowsNewline);
             builder.Append(@"    <BaseDirectory>").Append(k_BaseDirectory).Append("</BaseDirectory>").Append(k_WindowsNewline);
+            builder.Append(@"    <AllowUnsafeBlocks>").Append(allowUnsafe).Append("</AllowUnsafeBlocks>").Append(k_WindowsNewline);
             builder.Append(@"  </PropertyGroup>").Append(k_WindowsNewline);
             builder.Append(@"  <PropertyGroup Condition="" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' "">").Append(k_WindowsNewline);
             builder.Append(@"    <DebugSymbols>true</DebugSymbols>").Append(k_WindowsNewline);

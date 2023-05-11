@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.3] - 2023-05-11
+### Added
+- Projects generate documentation files.
+- Set `AllowUnsafeBlocks`.
+- Link to builtin analyzer.
+- Emacs support.
+
+### Changed
+- `Microsoft.Unity.Analyzers` updated to 1.16.1
+
 ## [0.8.2] - 2023-01-14
 ### Added
 - Neovide support (Windows).
@@ -161,6 +171,7 @@
 - Support for MacVim on macOS.
 - Support for Sublime Text 3 on macOS.
 
+[0.8.3]: https://github.com/frarees/easyeditor/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/frarees/easyeditor/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/frarees/easyeditor/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/frarees/easyeditor/compare/v0.7.0...v0.8.0
